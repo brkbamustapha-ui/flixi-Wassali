@@ -12,6 +12,7 @@
     "@supabase/supabase-js": "^2.117.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.49.0",
+    "motion": "^13.4.6",
     "next": "^15.5.26",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
