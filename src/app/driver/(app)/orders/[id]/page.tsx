@@ -1,0 +1,113 @@
+"use client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import { useSession } from "@/components/Session";
+import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
+import { ORDER_STATUS, phoneDigits } from "@/lib/format";
+import type { Order } from "@/lib/supabase";
+
+const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[340px] animate-pulse rounded-2xl bg-violet-100" /> });
+type Contacts = { client: { name: string; phone: string }; driver: { name: string; phone: string } };
+
+export default function DriverOrder() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { sb } = useSession();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [contacts, setContacts] = useState<Contacts | null>(null);
+  const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoErr, setGeoErr] = useState("");
+  const [err, setErr] = useState("");
+  const lastSent = useRef(0);
+
+  const load = useCallback(async () => {
+    const { data: o } = await sb.from("flixi_orders").select("*").eq("id", id).maybeSingle();
+    if (!o) return router.replace("/driver");
+    setOrder(o as Order);
+    const { data: c } = await sb.rpc("flixi_order_contacts", { p_order: id });
+    setContacts(c as Contacts | null);
+  }, [sb, id, router]);
+  useEffect(() => { load(); }, [load]);
+
+  const tracking = order && ["matched", "in_transit"].includes(order.status);
+  useEffect(() => {
+    if (!tracking) return;
+    if (!navigator.geolocation) return setGeoErr("Géolocalisation non disponible sur cet appareil.");
+    const w = navigator.geolocation.watchPosition(
+      (p) => {
+        setGeoErr("");
+        const c = { lat: p.coords.latitude, lng: p.coords.longitude };
+        setPos(c);
+        if (Date.now() - lastSent.current > 8000) {
+          lastSent.current = Date.now();
+          sb.rpc("flixi_update_location", { p_order: id, p_lat: c.lat, p_lng: c.lng });
+        }
+      },
+      () => setGeoErr("Localisation désactivée : activez-la, elle est obligatoire pour suivre la marchandise."),
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 },
+    );
+    return () => navigator.geolocation.clearWatch(w);
+  }, [tracking, sb, id]);
+
+  async function act(fn: string) {
+    setErr("");
+    const { error } = await sb.rpc(fn, { p_order: id });
+    if (error) setErr(error.message);
+    load();
+  }
+
+  const markers = useMemo(() => {
+    if (!order) return [];
+    const m = [];
+    if (order.from_lat != null) m.push({ lat: order.from_lat, lng: order.from_lng!, color: "#ff7a1a", emoji: "📍", label: `Chargement : ${order.from_wilaya}` });
+    if (order.to_lat != null) m.push({ lat: order.to_lat, lng: order.to_lng!, color: "#7b3ff2", emoji: "🏁", label: `Livraison : ${order.to_wilaya}` });
+    if (pos) m.push({ lat: pos.lat, lng: pos.lng, color: "#ff2e7e", emoji: "🚚", label: "Ma position" });
+    return m;
+  }, [order, pos]);
+
+  if (!order) return <Spinner />;
+  const st = ORDER_STATUS[order.status];
+  const price = order.final_price ?? order.client_price;
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-5">
+      <div className="space-y-5 lg:col-span-3">
+        <div className="card p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-slate-500">{order.goods_type}{order.weight_kg ? ` · ${order.weight_kg} kg` : ""}</p>
+              <h1 className="mt-1 text-2xl font-extrabold">{order.from_wilaya} <span className="grad-text">→</span> {order.to_wilaya}</h1>
+              <p className="mt-1 text-sm text-slate-500">{order.from_address || "—"} → {order.to_address || "—"}</p>
+              {order.description && <p className="mt-2 text-sm">{order.description}</p>}
+            </div>
+            <span className={`badge ${st.tone}`}>{st.label}</span>
+          </div>
+        </div>
+        <div className="card space-y-4 p-5 sm:p-6">
+          <PriceBreakdown price={price} role="driver" />
+          {contacts && (
+            <div className="rounded-2xl bg-emerald-50 p-4">
+              <p className="text-xs font-bold uppercase text-emerald-700">Client</p>
+              <p className="mt-1 font-extrabold">{contacts.client.name}</p>
+              <div className="mt-3 flex gap-2">
+                <a href={`tel:${phoneDigits(contacts.client.phone)}`} className="btn btn-ok !py-1.5 text-sm">📞 {contacts.client.phone}</a>
+                <a href={`https://wa.me/${phoneDigits(contacts.client.phone).replace(/^0/, "213").replace("+", "")}`} target="_blank" className="btn btn-ghost !py-1.5 text-sm">WhatsApp</a>
+              </div>
+            </div>
+          )}
+          {err && <Alert>{err}</Alert>}
+          {geoErr && <Alert>{geoErr}</Alert>}
+          {order.status === "matched" && <button onClick={() => act("flixi_start_transit")} className="btn btn-primary w-full !py-3">🚚 J'ai chargé la marchandise — démarrer la course</button>}
+          {order.status === "in_transit" && <button onClick={() => act("flixi_mark_delivered")} className="btn btn-ok w-full !py-3">✔ Marchandise livrée</button>}
+          {order.status === "delivered" && <Alert kind="ok">Course terminée. Pensez à verser votre commission cette semaine.</Alert>}
+        </div>
+      </div>
+      <div className="card space-y-3 p-4 lg:col-span-2 lg:sticky lg:top-24 lg:self-start">
+        <p className="font-extrabold">Itinéraire {tracking && <span className="badge ml-2 bg-emerald-100 text-emerald-700">● GPS actif</span>}</p>
+        <MapView height={360} markers={markers} line={markers.filter((m) => m.emoji !== "🚚").map((m) => [m.lat, m.lng] as [number, number])} />
+        {tracking && <p className="text-xs text-slate-500">Gardez cette page ouverte et la localisation activée : le client suit votre position en direct.</p>}
+      </div>
+    </div>
+  );
+}

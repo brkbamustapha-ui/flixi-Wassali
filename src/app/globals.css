@@ -1,0 +1,37 @@
+@import "leaflet/dist/leaflet.css";
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1a1233;
+  --color-brand-orange: #ff7a1a;
+  --color-brand-pink: #ff2e7e;
+  --color-brand-violet: #7b3ff2;
+  --color-brand-yellow: #ffc940;
+  --color-soft: #faf7ff;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, "Segoe UI", Arial, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--color-soft); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+.grad-text { background: linear-gradient(90deg, #ff7a1a, #ff2e7e 55%, #7b3ff2); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.grad-bg { background: linear-gradient(120deg, #ff8a1f 0%, #ff2e7e 52%, #7b3ff2 100%); }
+.grad-soft { background: radial-gradient(1200px 500px at 85% -10%, #ffd9ec 0%, transparent 60%), radial-gradient(900px 500px at -10% 10%, #ffe6cc 0%, transparent 55%), #faf7ff; }
+
+.card { background: #fff; border-radius: 1.25rem; box-shadow: 0 1px 2px rgb(26 18 51 / 0.05), 0 8px 30px -12px rgb(123 63 242 / 0.18); border: 1px solid rgb(123 63 242 / 0.08); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: .9rem; padding: .7rem 1.2rem; font-weight: 700; font-size: .95rem; transition: transform .12s, box-shadow .2s, opacity .2s; cursor: pointer; }
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary { color: #fff; background: linear-gradient(120deg, #ff8a1f, #ff2e7e 60%, #7b3ff2); box-shadow: 0 10px 24px -10px rgb(255 46 126 / .7); }
+.btn-primary:hover:not(:disabled) { box-shadow: 0 14px 30px -10px rgb(255 46 126 / .85); }
+.btn-ghost { background: #fff; color: var(--color-ink); border: 1.5px solid rgb(123 63 242 / .22); }
+.btn-ghost:hover:not(:disabled) { border-color: #7b3ff2; }
+.btn-danger { background: #fff1f2; color: #be123c; border: 1.5px solid #fecdd3; }
+.btn-ok { background: #ecfdf5; color: #047857; border: 1.5px solid #a7f3d0; }
+
+.input, .select, .textarea { width: 100%; border-radius: .85rem; border: 1.5px solid rgb(123 63 242 / .2); background: #fff; padding: .7rem .9rem; font-size: .95rem; outline: none; transition: border-color .15s, box-shadow .15s; }
+.input:focus, .select:focus, .textarea:focus { border-color: #ff2e7e; box-shadow: 0 0 0 4px rgb(255 46 126 / .12); }
+.label { display: block; font-size: .8rem; font-weight: 700; margin-bottom: .35rem; color: #4b3f72; }
+.badge { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; padding: .15rem .65rem; font-size: .75rem; font-weight: 700; }
+
+.leaflet-container { font-family: inherit; border-radius: 1rem; z-index: 0; }
