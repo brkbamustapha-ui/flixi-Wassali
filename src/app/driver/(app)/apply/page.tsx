@@ -7,6 +7,7 @@ import { Alert, Field } from "@/components/ui";
 import { VEHICLE_TYPES } from "@/lib/format";
 import { compressImage } from "@/lib/images";
 import { WILAYAS } from "@/lib/wilayas";
+import { useI18n } from "@/lib/i18n";
 
 type Key = "carte_grise_img" | "permis_img" | "selfie_img" | "vehicle_img" | "plate_img";
 const DOCS: { key: Key; label: string; hint: string; capture?: "user" | "environment" }[] = [
@@ -15,11 +16,12 @@ const DOCS: { key: Key; label: string; hint: string; capture?: "user" | "environ
   { key: "selfie_img", label: "Selfie", hint: "Votre visage, bien éclairé", capture: "user" },
   { key: "vehicle_img", label: "Photo du véhicule", hint: "Le véhicule entier", capture: "environment" },
   { key: "plate_img", label: "Photo de la plaque (matricule)", hint: "Plaque d'immatriculation lisible", capture: "environment" },
-];
+]; // libellés = clés de traduction
 
 export default function Apply() {
   const { sb, profile, driver, refresh } = useSession();
   const router = useRouter();
+  const { t, w } = useI18n();
   const [imgs, setImgs] = useState<Partial<Record<Key, string>>>({});
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,7 @@ export default function Apply() {
   async function pick(key: Key, file?: File) {
     if (!file) return;
     try { setImgs((s) => ({ ...s, [key]: undefined })); const d = await compressImage(file); setImgs((s) => ({ ...s, [key]: d })); }
-    catch { setErr("Image illisible, réessayez."); }
+    catch { setErr(t("Image illisible, réessayez.")); }
   }
 
   function askLocation() {
@@ -43,9 +45,9 @@ export default function Apply() {
     setErr("");
     const f = new FormData(e.currentTarget);
     const missing = DOCS.filter((d) => !imgs[d.key]);
-    if (missing.length) return setErr(`Photos manquantes : ${missing.map((m) => m.label).join(", ")}.`);
-    if (!f.get("terms") || !f.get("resp") || !f.get("loc")) return setErr("Vous devez accepter toutes les conditions pour ouvrir un compte transporteur.");
-    if (locOk !== true) return setErr("Activez la localisation de votre appareil : elle est obligatoire pour suivre la marchandise.");
+    if (missing.length) return setErr(t("Photos manquantes : {list}.", { list: missing.map((m) => t(m.label)).join(", ") }));
+    if (!f.get("terms") || !f.get("resp") || !f.get("loc")) return setErr(t("Vous devez accepter toutes les conditions pour ouvrir un compte transporteur."));
+    if (locOk !== true) return setErr(t("Activez la localisation de votre appareil : elle est obligatoire pour suivre la marchandise."));
     setBusy(true);
     const { error } = await sb.from("flixi_drivers").insert({
       user_id: profile.id, wilaya: String(f.get("wilaya")), vehicle_type: String(f.get("vehicle")), plate_number: String(f.get("plate")).trim(),
@@ -61,34 +63,34 @@ export default function Apply() {
   return (
     <form onSubmit={submit} className="mx-auto max-w-3xl space-y-5">
       <div className="rounded-3xl bg-gradient-to-r from-violet-700 to-fuchsia-500 p-6 text-white shadow-lg">
-        <h1 className="text-2xl font-extrabold">Dossier transporteur</h1>
-        <p className="mt-1 text-sm text-white/90">Complétez ce formulaire une seule fois. Notre équipe vérifie vos documents avant d'activer votre compte.</p>
+        <h1 className="text-2xl font-extrabold">{t("Dossier transporteur")}</h1>
+        <p className="mt-1 text-sm text-white/90">{t("Complétez ce formulaire une seule fois. Notre équipe vérifie vos documents avant d'activer votre compte.")}</p>
       </div>
 
       <div className="card space-y-4 p-5 sm:p-6">
-        <h2 className="text-lg font-extrabold">1. Véhicule et agrément</h2>
+        <h2 className="text-lg font-extrabold">{t("1. Véhicule et agrément")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Type de véhicule"><select name="vehicle" className="select">{VEHICLE_TYPES.map((v) => <option key={v}>{v}</option>)}</select></Field>
-          <Field label="Matricule (plaque)"><input name="plate" required className="input" placeholder="ex : 12345 118 16" /></Field>
-          <Field label="Wilaya de résidence"><select name="wilaya" className="select">{WILAYAS.map((w) => <option key={w.code}>{w.name}</option>)}</select></Field>
-          <Field label="Document professionnel">
-            <select name="kind" className="select"><option value="agrement">Licence / Agrément de transport</option><option value="registre_commerce">Registre de commerce</option></select>
+          <Field label={t("Type de véhicule")}><select name="vehicle" className="select">{VEHICLE_TYPES.map((v) => <option key={v} value={v}>{t(v)}</option>)}</select></Field>
+          <Field label={t("Matricule (plaque)")}><input name="plate" required dir="ltr" className="input text-start" placeholder="12345 118 16" /></Field>
+          <Field label={t("Wilaya de résidence")}><select name="wilaya" className="select">{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
+          <Field label={t("Document professionnel")}>
+            <select name="kind" className="select"><option value="agrement">{t("Licence / Agrément de transport")}</option><option value="registre_commerce">{t("Registre de commerce")}</option></select>
           </Field>
         </div>
-        <Field label="Numéro de la licence, de l'agrément ou du registre de commerce"><input name="license" required className="input" /></Field>
+        <Field label={t("Numéro de la licence, de l'agrément ou du registre de commerce")}><input name="license" required dir="ltr" className="input text-start" /></Field>
       </div>
 
       <div className="card space-y-4 p-5 sm:p-6">
-        <h2 className="text-lg font-extrabold">2. Photos obligatoires</h2>
+        <h2 className="text-lg font-extrabold">{t("2. Photos obligatoires")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {DOCS.map((d) => (
             <label key={d.key} className={`block cursor-pointer rounded-2xl border-2 border-dashed p-3 text-center transition ${imgs[d.key] ? "border-emerald-300 bg-emerald-50" : "border-violet-200 hover:border-brand-pink"}`}>
               {imgs[d.key]
                 // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={imgs[d.key]} alt={d.label} className="mx-auto h-32 w-full rounded-xl object-cover" />
+                ? <img src={imgs[d.key]} alt={t(d.label)} className="mx-auto h-32 w-full rounded-xl object-cover" />
                 : <div className="flex h-32 items-center justify-center text-4xl">📷</div>}
-              <p className="mt-2 text-sm font-extrabold">{d.label}</p>
-              <p className="text-xs text-slate-500">{imgs[d.key] ? "✔ Ajoutée — toucher pour changer" : d.hint}</p>
+              <p className="mt-2 text-sm font-extrabold">{t(d.label)}</p>
+              <p className="text-xs text-slate-500">{imgs[d.key] ? t("✔ Ajoutée — toucher pour changer") : t(d.hint)}</p>
               <input type="file" accept="image/*" capture={d.capture} className="hidden" onChange={(e) => pick(d.key, e.target.files?.[0])} />
             </label>
           ))}
@@ -96,22 +98,22 @@ export default function Apply() {
       </div>
 
       <div className="card space-y-4 p-5 sm:p-6">
-        <h2 className="text-lg font-extrabold">3. Localisation et conditions</h2>
+        <h2 className="text-lg font-extrabold">{t("3. Localisation et conditions")}</h2>
         <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-violet-50 p-4">
-          <button type="button" onClick={askLocation} className="btn btn-ghost text-sm">📍 Activer ma localisation</button>
-          {locOk === true && <span className="text-sm font-bold text-emerald-700">✔ Localisation activée</span>}
-          {locOk === false && <span className="text-sm font-bold text-rose-600">Localisation refusée — autorisez-la dans votre navigateur.</span>}
+          <button type="button" onClick={askLocation} className="btn btn-ghost text-sm">📍 {t("Activer ma localisation")}</button>
+          {locOk === true && <span className="text-sm font-bold text-emerald-700">✔ {t("Localisation activée")}</span>}
+          {locOk === false && <span className="text-sm font-bold text-rose-600">{t("Localisation refusée — autorisez-la dans votre navigateur.")}</span>}
         </div>
         {[
           ["loc", "Je m'engage à laisser ma localisation activée pendant toute livraison, afin que la marchandise soit suivie."],
           ["resp", "J'assume l'entière responsabilité de toute la marchandise que je transporte (perte, dommage, retard)."],
           ["terms", "J'ai lu et j'accepte les conditions d'utilisation de Flixi Tawsil, dont la commission de 500 DA par course."],
-        ].map(([n, t]) => (
-          <label key={n} className="flex items-start gap-2 text-sm"><input name={n} type="checkbox" className="mt-1 h-4 w-4 accent-pink-600" /><span>{t}</span></label>
+        ].map(([n, txt]) => (
+          <label key={n} className="flex items-start gap-2 text-sm"><input name={n} type="checkbox" className="mt-1 h-4 w-4 accent-pink-600" /><span>{t(txt)}</span></label>
         ))}
-        <p className="text-xs text-slate-500">Sans ces acceptations, le compte transporteur ne peut pas être ouvert. <Link href="/conditions" target="_blank" className="font-bold text-brand-pink">Lire les conditions</Link></p>
+        <p className="text-xs text-slate-500">{t("Sans ces acceptations, le compte transporteur ne peut pas être ouvert.")} <Link href="/conditions" target="_blank" className="font-bold text-brand-pink">{t("Lire les conditions")}</Link></p>
         {err && <Alert>{err}</Alert>}
-        <button disabled={busy} className="btn btn-primary w-full !py-3.5 text-base">{busy ? "Envoi du dossier…" : "Envoyer mon dossier"}</button>
+        <button disabled={busy} className="btn btn-primary w-full !py-3.5 text-base">{busy ? t("Envoi du dossier…") : t("Envoyer mon dossier")}</button>
       </div>
     </form>
   );

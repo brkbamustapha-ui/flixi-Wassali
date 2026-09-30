@@ -5,7 +5,7 @@ export function LogoMark({ size = 40 }: { size?: number }) {
 
 export function Logo({ size = 40, dark = false }: { size?: number; dark?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-2.5">
+    <span className="keep-ltr inline-flex items-center gap-2.5" dir="ltr">
       <LogoMark size={size} />
       <span className="leading-none">
         <span className="block font-extrabold tracking-tight" style={{ fontSize: size * 0.56 }}>

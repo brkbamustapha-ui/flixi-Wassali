@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { useSession } from "@/components/Session";
 import { Alert, Empty, Spinner } from "@/components/ui";
-import { PAY_METHODS, da, dateFr } from "@/lib/format";
+import { PAY_METHODS, da } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 
 type Com = { id: string; order_id: string; amount: number; status: "unpaid" | "paid"; method: string | null; paid_at: string | null; created_at: string };
 
@@ -16,6 +17,7 @@ function weekStart(d: string) {
 
 export default function Commissions() {
   const { sb } = useSession();
+  const { t, date } = useI18n();
   const [rows, setRows] = useState<Com[] | null>(null);
   useEffect(() => { sb.from("flixi_commissions").select("*").order("created_at", { ascending: false }).then(({ data }) => setRows((data as Com[]) ?? [])); }, [sb]);
   if (!rows) return <Spinner />;
@@ -27,29 +29,29 @@ export default function Commissions() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-extrabold">Commissions Flixi Tawsil</h1>
+      <h1 className="text-2xl font-extrabold">{t("Commissions Flixi Tawsil")}</h1>
       <div className="grad-bg rounded-3xl p-6 text-white shadow-lg">
-        <p className="text-sm font-bold opacity-90">Total à verser</p>
+        <p className="text-sm font-bold opacity-90">{t("Total à verser")}</p>
         <p className="mt-1 text-4xl font-extrabold">{da(total)}</p>
-        <p className="mt-2 text-sm text-white/90">{unpaid.length} course{unpaid.length > 1 ? "s" : ""} × 500 DA</p>
+        <p className="mt-2 text-sm text-white/90">{t(unpaid.length > 1 ? "{n} courses × 500 DA" : "{n} course × 500 DA", { n: unpaid.length })}</p>
       </div>
-      <Alert kind="info">💳 En fin de semaine, rendez-vous à nos bureaux pour verser vos commissions par <b>Edahabia, CIB, Visa ou Mastercard</b>. Votre compte sera mis à jour par l'équipe.</Alert>
-      {rows.length === 0 ? <Empty icon="💳" title="Aucune commission" text="Une commission de 500 DA est ajoutée à chaque course conclue." /> : (
+      <Alert kind="info">💳 {t("En fin de semaine, rendez-vous à nos bureaux pour verser vos commissions par Edahabia, CIB, Visa ou Mastercard. Votre compte sera mis à jour par l'équipe.")}</Alert>
+      {rows.length === 0 ? <Empty icon="💳" title={t("Aucune commission")} text={t("Une commission de 500 DA est ajoutée à chaque course conclue.")} /> : (
         [...weeks.entries()].map(([k, list]) => {
           const start = new Date(k), end = new Date(start); end.setDate(end.getDate() + 6);
           const due = list.filter((r) => r.status === "unpaid").reduce((s, r) => s + r.amount, 0);
           return (
             <div key={k} className="card overflow-hidden">
               <div className="flex items-center justify-between bg-violet-50 px-5 py-3 text-sm font-extrabold">
-                <span>Semaine du {dateFr(start.toISOString())} au {dateFr(end.toISOString())}</span>
-                <span className={due ? "text-brand-pink" : "text-emerald-600"}>{due ? `${da(due)} à verser` : "Soldée ✔"}</span>
+                <span>{t("Semaine du {a} au {b}", { a: date(start.toISOString()), b: date(end.toISOString()) })}</span>
+                <span className={due ? "text-brand-pink" : "text-emerald-600"}>{due ? t("{p} à verser", { p: da(due) }) : t("Soldée ✔")}</span>
               </div>
               {list.map((r) => (
                 <div key={r.id} className="flex items-center justify-between border-t border-violet-50 px-5 py-3 text-sm">
-                  <span>Course du {dateFr(r.created_at)}</span>
+                  <span>{t("Course du {d}", { d: date(r.created_at) })}</span>
                   <span className="flex items-center gap-3">
                     <b>{da(r.amount)}</b>
-                    {r.status === "paid" ? <span className="badge bg-emerald-100 text-emerald-700">Payée · {PAY_METHODS[r.method ?? ""] ?? ""}</span> : <span className="badge bg-amber-100 text-amber-800">À payer</span>}
+                    {r.status === "paid" ? <span className="badge bg-emerald-100 text-emerald-700">{t("Payée")} · {t(PAY_METHODS[r.method ?? ""] ?? "")}</span> : <span className="badge bg-amber-100 text-amber-800">{t("À payer")}</span>}
                   </span>
                 </div>
               ))}

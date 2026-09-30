@@ -1,6 +1,7 @@
 "use client";
 import { ReactNode } from "react";
 import { COMMISSION, da } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return (
@@ -33,18 +34,19 @@ export function Empty({ icon, title, text }: { icon: string; title: string; text
 
 /** Détail prix : prix transporteur + commission Flixi = total à payer */
 export function PriceBreakdown({ price, role }: { price: number; role: "client" | "driver" }) {
+  const { t } = useI18n();
   const total = price + COMMISSION;
   return (
     <div className="rounded-2xl bg-gradient-to-br from-orange-50 via-pink-50 to-violet-50 p-4 text-sm">
-      <Row k={role === "client" ? "Prix du transporteur" : "Votre prix (net)"} v={da(price)} />
-      <Row k="Commission Flixi Tawsil" v={`+ ${da(COMMISSION)}`} />
+      <Row k={role === "client" ? t("Prix du transporteur") : t("Votre prix (net)")} v={da(price)} />
+      <Row k={t("Commission Flixi Tawsil")} v={`+ ${da(COMMISSION)}`} />
       <div className="my-2 border-t border-violet-200" />
       {role === "client" ? (
-        <Row k="Total à payer" v={da(total)} strong />
+        <Row k={t("Total à payer")} v={da(total)} strong />
       ) : (
         <>
-          <Row k="Prix à encaisser auprès du client" v={da(total)} strong />
-          <p className="mt-1 text-xs text-slate-500">Dont {da(COMMISSION)} de commission à verser à Flixi Tawsil en fin de semaine.</p>
+          <Row k={t("Prix à encaisser auprès du client")} v={da(total)} strong />
+          <p className="mt-1 text-xs text-slate-500">{t("Dont {amount} de commission à verser à Flixi Tawsil en fin de semaine.", { amount: da(COMMISSION) })}</p>
         </>
       )}
     </div>

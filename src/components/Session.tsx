@@ -6,6 +6,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase, Profile, DriverFile } from "@/lib/supabase";
 import { Logo } from "./Logo";
 import { Spinner } from "./ui";
+import { useI18n } from "@/lib/i18n";
+import LangSwitch from "./LangSwitch";
 
 type Ctx = { sb: SupabaseClient; profile: Profile; driver: DriverFile | null; refresh: () => Promise<void> };
 const SessionCtx = createContext<Ctx | null>(null);
@@ -17,6 +19,7 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
   const router = useRouter();
   const path = usePathname();
   const sb = supabase();
+  const { t } = useI18n();
   const [state, setState] = useState<{ profile: Profile; driver: DriverFile | null } | null>(null);
 
   const load = useCallback(async () => {
@@ -59,19 +62,20 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
                 return (
                   <Link key={n.href} href={n.href}
                     className={`rounded-xl px-3.5 py-2 text-sm font-bold transition ${active ? "grad-bg text-white shadow" : "text-slate-600 hover:bg-violet-50"}`}>
-                    {n.label}
+                    {t(n.label)}
                   </Link>
                 );
               })}
             </nav>
             <div className="flex items-center gap-3">
               <span className="hidden text-sm font-bold sm:block">{profile.first_name}</span>
-              <button onClick={logout} className="btn btn-ghost !px-3 !py-1.5 text-sm">Quitter</button>
+              <LangSwitch />
+              <button onClick={logout} className="btn btn-ghost !px-3 !py-1.5 text-sm">{t("Quitter")}</button>
             </div>
           </div>
         </header>
         {profile.status === "suspended" && (
-          <div className="bg-rose-600 px-4 py-2 text-center text-sm font-bold text-white">Votre compte est suspendu. Contactez le support Flixi Tawsil.</div>
+          <div className="bg-rose-600 px-4 py-2 text-center text-sm font-bold text-white">{t("Votre compte est suspendu. Contactez le support Flixi Tawsil.")}</div>
         )}
         <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
         <nav className="fixed inset-x-0 bottom-0 z-30 grid border-t border-violet-100 bg-white/95 backdrop-blur md:hidden" style={{ gridTemplateColumns: `repeat(${nav.length}, 1fr)` }}>
@@ -79,7 +83,7 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
             const active = n.href === `/${role}` ? path === n.href : path.startsWith(n.href);
             return (
               <Link key={n.href} href={n.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-bold ${active ? "text-brand-pink" : "text-slate-500"}`}>
-                <span className="text-xl leading-none">{n.icon}</span>{n.label}
+                <span className="text-xl leading-none">{n.icon}</span>{t(n.label)}
               </Link>
             );
           })}

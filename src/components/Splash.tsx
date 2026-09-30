@@ -2,6 +2,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useSyncExternalStore } from "react";
 import { INTRO_SESSION_KEY } from "@/lib/intro";
+import { useI18n } from "@/lib/i18n";
 import { LogoIntro } from "./LogoIntro";
 
 /* --- état partagé (comme un rideau d'ouverture : joué une fois par session) --- */
@@ -27,6 +28,7 @@ const introStore = {
 export default function Splash() {
   const done = useSyncExternalStore(introStore.subscribe, introStore.getSnapshot, introStore.getServerSnapshot) === "done";
   const reduce = useReducedMotion();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (done) return;
@@ -61,7 +63,7 @@ export default function Splash() {
 
           <LogoIntro delay={0.15} onDone={() => window.setTimeout(introStore.finish, 250)} />
 
-          <span className="absolute bottom-8 text-[11px] font-bold uppercase tracking-[0.3em] text-white/45">Toucher pour entrer</span>
+          <span className="absolute bottom-8 text-[11px] font-bold uppercase tracking-[0.3em] text-white/45">{t("Toucher pour entrer")}</span>
         </motion.div>
       )}
     </AnimatePresence>

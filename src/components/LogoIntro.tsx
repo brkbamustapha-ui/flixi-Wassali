@@ -87,7 +87,7 @@ export function LogoIntro({ delay = 0, onDone }: { delay?: number; onDone?: () =
       </div>
 
       {/* nom : les lettres s'inscrivent */}
-      <h1 className="mt-8 flex items-baseline text-[clamp(2.4rem,8vw,3.6rem)] font-extrabold leading-none tracking-[-0.03em]" aria-label="Flixi Tawsil">
+      <h1 dir="ltr" className="mt-8 flex items-baseline text-[clamp(2.4rem,8vw,3.6rem)] font-extrabold leading-none tracking-[-0.03em]" aria-label="Flixi Tawsil">
         {FLIXI.map(([c, col], i) => (
           <motion.span key={`a${i}`} style={{ color: col, display: "inline-block" }} initial={hidden({ opacity: 0, scale: 0.4, y: 14 })} animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.6, delay: at(1.25 + i * 0.05), ease: EASE }}>{c}</motion.span>
@@ -103,7 +103,7 @@ export function LogoIntro({ delay = 0, onDone }: { delay?: number; onDone?: () =
       <motion.div className="mt-4 flex items-center justify-center gap-4 text-[11px] font-bold uppercase tracking-[0.34em] text-white/75"
         initial={hidden({ opacity: 0, y: 8 })} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: at(1.9), ease: EASE }}>
         <motion.span className="block h-px w-12 origin-right bg-gradient-to-r from-transparent to-[#ff9a5a]" initial={hidden({ scaleX: 0 })} animate={{ scaleX: 1 }} transition={{ duration: 0.9, delay: at(2), ease: EASE }} />
-        <span>توصيل · Algérie</span>
+        <span dir="ltr">توصيل · Algérie</span>
         <motion.span className="block h-px w-12 origin-left bg-gradient-to-l from-transparent to-[#ff9a5a]" initial={hidden({ scaleX: 0 })} animate={{ scaleX: 1 }} transition={{ duration: 0.9, delay: at(2), ease: EASE }} />
       </motion.div>
     </div>

@@ -1,4 +1,5 @@
-export type Wilaya = { code: number; name: string; lat: number; lng: number };
+export type Wilaya = { code: number; name: string; ar: string; lat: number; lng: number };
+const AR = ["أدرار", "الشلف", "الأغواط", "أم البواقي", "باتنة", "بجاية", "بسكرة", "بشار", "البليدة", "البويرة", "تمنراست", "تبسة", "تلمسان", "تيارت", "تيزي وزو", "الجزائر", "الجلفة", "جيجل", "سطيف", "سعيدة", "سكيكدة", "سيدي بلعباس", "عنابة", "قالمة", "قسنطينة", "المدية", "مستغانم", "المسيلة", "معسكر", "ورقلة", "وهران", "البيض", "إليزي", "برج بوعريريج", "بومرداس", "الطارف", "تندوف", "تيسمسيلت", "الوادي", "خنشلة", "سوق أهراس", "تيبازة", "ميلة", "عين الدفلى", "النعامة", "عين تموشنت", "غرداية", "غليزان", "تيميمون", "برج باجي مختار", "أولاد جلال", "بني عباس", "عين صالح", "عين قزام", "تقرت", "جانت", "المغير", "المنيعة"];
 
 export const WILAYAS: Wilaya[] = [
   [1, "Adrar", 27.87, -0.29], [2, "Chlef", 36.16, 1.33], [3, "Laghouat", 33.8, 2.86], [4, "Oum El Bouaghi", 35.88, 7.11],
@@ -16,7 +17,7 @@ export const WILAYAS: Wilaya[] = [
   [49, "Timimoun", 29.26, 0.23], [50, "Bordj Badji Mokhtar", 21.33, 0.95], [51, "Ouled Djellal", 34.43, 5.07],
   [52, "Béni Abbès", 30.13, -2.17], [53, "In Salah", 27.2, 2.48], [54, "In Guezzam", 19.57, 5.77], [55, "Touggourt", 33.1, 6.06],
   [56, "Djanet", 24.55, 9.48], [57, "El M'Ghair", 33.95, 5.92], [58, "El Menia", 30.58, 2.88],
-].map(([code, name, lat, lng]) => ({ code, name, lat, lng }) as Wilaya);
+].map(([code, name, lat, lng]) => ({ code, name, ar: AR[(code as number) - 1], lat, lng }) as Wilaya);
 
-export const wilayaLabel = (w: Wilaya) => `${String(w.code).padStart(2, "0")} - ${w.name}`;
+export const wilayaLabel = (w: Wilaya, lang: string = "fr") => `${String(w.code).padStart(2, "0")} - ${lang === "ar" || lang === "dz" ? w.ar : w.name}`;
 export const findWilaya = (name?: string | null) => WILAYAS.find((w) => w.name === name);

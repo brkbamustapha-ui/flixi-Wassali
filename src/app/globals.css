@@ -8,7 +8,7 @@
   --color-brand-violet: #7b3ff2;
   --color-brand-yellow: #ffc940;
   --color-soft: #faf7ff;
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, "Segoe UI", Arial, sans-serif;
+  --font-sans: var(--font-jakarta), var(--font-cairo), ui-sans-serif, system-ui, "Segoe UI", Arial, sans-serif;
 }
 
 html { scroll-behavior: smooth; }
@@ -38,3 +38,9 @@ body { background: var(--color-soft); color: var(--color-ink); font-family: var(
 
 /* Intro déjà vue pendant la session (voir Splash.tsx) */
 html[data-intro="skip"] .intro-overlay { display: none; }
+
+/* Langues arabes (darija / arabe) : police arabe, sens droite-à-gauche */
+html[dir="rtl"] body { font-family: var(--font-cairo), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif; }
+html[dir="rtl"] .grad-text { padding-inline: .06em; }
+[dir="ltr"] .keep-ltr, .keep-ltr { direction: ltr; unicode-bidi: isolate; }
+.leaflet-container { direction: ltr; }

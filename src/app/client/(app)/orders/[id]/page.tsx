@@ -4,8 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useSession } from "@/components/Session";
 import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
-import { ORDER_STATUS, da, dateTimeFr, phoneDigits } from "@/lib/format";
+import { ORDER_STATUS, da, phoneDigits } from "@/lib/format";
 import type { Order } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[340px] animate-pulse rounded-2xl bg-violet-100" /> });
 
@@ -17,6 +18,7 @@ export default function ClientOrder() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { sb } = useSession();
+  const { t, w, dateTime } = useI18n();
   const [order, setOrder] = useState<Order | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
   const [contacts, setContacts] = useState<Contacts | null>(null);
@@ -50,7 +52,7 @@ export default function ClientOrder() {
   async function act(key: string, fn: () => PromiseLike<{ error: { message: string } | null }>) {
     setBusy(key); setErr("");
     const { error } = await fn();
-    if (error) setErr(error.message);
+    if (error) setErr(t(error.message));
     await load();
     setBusy("");
   }
@@ -58,11 +60,11 @@ export default function ClientOrder() {
   const markers = useMemo(() => {
     if (!order) return [];
     const m = [];
-    if (order.from_lat != null) m.push({ lat: order.from_lat, lng: order.from_lng!, color: "#ff7a1a", emoji: "📍", label: `Départ : ${order.from_wilaya}` });
-    if (order.to_lat != null) m.push({ lat: order.to_lat, lng: order.to_lng!, color: "#7b3fff", emoji: "🏁", label: `Arrivée : ${order.to_wilaya}` });
-    if (loc) m.push({ lat: loc.lat, lng: loc.lng, color: "#ff2e7e", emoji: "🚚", label: "Votre marchandise" });
+    if (order.from_lat != null) m.push({ lat: order.from_lat, lng: order.from_lng!, color: "#ff7a1a", emoji: "📍", label: t("Départ : {w}", { w: w(order.from_wilaya) }) });
+    if (order.to_lat != null) m.push({ lat: order.to_lat, lng: order.to_lng!, color: "#7b3fff", emoji: "🏁", label: t("Arrivée : {w}", { w: w(order.to_wilaya) }) });
+    if (loc) m.push({ lat: loc.lat, lng: loc.lng, color: "#ff2e7e", emoji: "🚚", label: t("Votre marchandise") });
     return m;
-  }, [order, loc]);
+  }, [order, loc, t, w]);
 
   if (!order) return <Spinner />;
   const st = ORDER_STATUS[order.status];
@@ -75,14 +77,14 @@ export default function ClientOrder() {
         <div className="card p-5 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-bold text-slate-500">{order.goods_type}{order.weight_kg ? ` · ${order.weight_kg} kg` : ""}</p>
-              <h1 className="mt-1 text-2xl font-extrabold">{order.from_wilaya} <span className="grad-text">→</span> {order.to_wilaya}</h1>
+              <p className="text-sm font-bold text-slate-500">{t(order.goods_type)}{order.weight_kg ? ` · ${order.weight_kg} kg` : ""}</p>
+              <h1 className="mt-1 text-2xl font-extrabold">{w(order.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(order.to_wilaya)}</h1>
               {(order.from_address || order.to_address) && <p className="mt-1 text-sm text-slate-500">{order.from_address || "—"} → {order.to_address || "—"}</p>}
               {order.description && <p className="mt-2 text-sm">{order.description}</p>}
             </div>
-            <span className={`badge ${st.tone}`}>{st.label}</span>
+            <span className={`badge ${st.tone}`}>{t(st.label)}</span>
           </div>
-          <p className="mt-4 text-sm font-bold">Votre prix de départ : {da(order.client_price)}</p>
+          <p className="mt-4 text-sm font-bold">{t("Votre prix de départ : {p}", { p: da(order.client_price) })}</p>
         </div>
 
         {err && <Alert>{err}</Alert>}
@@ -90,29 +92,29 @@ export default function ClientOrder() {
         {order.status === "open" && (
           <div className="card p-5 sm:p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold">Offres des transporteurs ({bids.length})</h2>
-              <button onClick={() => act("cancel", () => sb.rpc("flixi_cancel_order", { p_order: id }))} disabled={!!busy} className="btn btn-danger !py-1.5 text-sm">Annuler la commande</button>
+              <h2 className="text-lg font-extrabold">{t("Offres des transporteurs")} ({bids.length})</h2>
+              <button onClick={() => act("cancel", () => sb.rpc("flixi_cancel_order", { p_order: id }))} disabled={!!busy} className="btn btn-danger !py-1.5 text-sm">{t("Annuler la commande")}</button>
             </div>
-            {waiting && <div className="mt-3"><Alert kind="info">⏳ Vous avez accepté l'offre de {waiting.driver_first_name} ({da(waiting.price)}). En attente de la confirmation du transporteur.</Alert></div>}
+            {waiting && <div className="mt-3"><Alert kind="info">⏳ {t("Vous avez accepté l'offre de {n} ({p}). En attente de la confirmation du transporteur.", { n: waiting.driver_first_name, p: da(waiting.price) })}</Alert></div>}
             {bids.length === 0 ? (
-              <p className="mt-4 rounded-xl bg-violet-50 p-6 text-center text-sm text-slate-600">Aucune offre pour l'instant. Les transporteurs vérifiés voient votre commande — revenez dans quelques minutes.</p>
+              <p className="mt-4 rounded-xl bg-violet-50 p-6 text-center text-sm text-slate-600">{t("Aucune offre pour l'instant. Les transporteurs vérifiés voient votre commande — revenez dans quelques minutes.")}</p>
             ) : (
               <div className="mt-4 space-y-3">
                 {bids.map((b) => (
                   <div key={b.id} className={`rounded-2xl border-2 p-4 ${b.price === best ? "border-emerald-300 bg-emerald-50/50" : "border-violet-100"} ${b.status === "client_accepted" ? "!border-brand-pink" : ""}`}>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="font-extrabold">🚚 {b.driver_first_name} {b.price === best && <span className="badge ml-1 bg-emerald-100 text-emerald-700">Meilleur prix</span>}</p>
-                        <p className="text-xs text-slate-500">{b.vehicle_type}{b.wilaya ? ` · ${b.wilaya}` : ""} · {b.deliveries} livraison{b.deliveries > 1 ? "s" : ""}</p>
+                        <p className="font-extrabold">🚚 {b.driver_first_name} {b.price === best && <span className="badge ms-1 bg-emerald-100 text-emerald-700">{t("Meilleur prix")}</span>}</p>
+                        <p className="text-xs text-slate-500">{t(b.vehicle_type)}{b.wilaya ? ` · ${w(b.wilaya)}` : ""} · {t(b.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: b.deliveries })}</p>
                         {b.note && <p className="mt-1 text-sm">« {b.note} »</p>}
                       </div>
-                      <div className="text-right">
+                      <div className="text-end">
                         <p className="text-xl font-extrabold">{da(b.price)}</p>
-                        <p className="text-xs font-bold text-slate-500">Total : {da(b.price + order.commission)}</p>
+                        <p className="text-xs font-bold text-slate-500">{t("Total : {p}", { p: da(b.price + order.commission) })}</p>
                       </div>
                     </div>
                     <button disabled={!!busy || b.status === "client_accepted"} onClick={() => act(b.id, () => sb.rpc("flixi_client_accept_bid", { p_bid: b.id }))} className="btn btn-primary mt-3 w-full !py-2 text-sm">
-                      {b.status === "client_accepted" ? "✔ Acceptée — en attente du transporteur" : "Accepter cette offre"}
+                      {b.status === "client_accepted" ? t("✔ Acceptée — en attente du transporteur") : t("Accepter cette offre")}
                     </button>
                   </div>
                 ))}
@@ -123,23 +125,23 @@ export default function ClientOrder() {
 
         {order.final_price && (
           <div className="card space-y-4 p-5 sm:p-6">
-            <h2 className="text-lg font-extrabold">Commande conclue ✅</h2>
+            <h2 className="text-lg font-extrabold">{t("Commande conclue ✅")}</h2>
             <PriceBreakdown price={order.final_price} role="client" />
             {contacts && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl bg-emerald-50 p-4">
-                  <p className="text-xs font-bold uppercase text-emerald-700">Votre transporteur</p>
+                  <p className="text-xs font-bold uppercase text-emerald-700">{t("Votre transporteur")}</p>
                   <p className="mt-1 font-extrabold">{contacts.driver.name}</p>
-                  <p className="text-xs text-slate-600">{contacts.driver.vehicle_type} · Matricule {contacts.driver.plate_number}</p>
+                  <p className="text-xs text-slate-600">{t(contacts.driver.vehicle_type)} · {t("Matricule")} <bdi dir="ltr">{contacts.driver.plate_number}</bdi></p>
                   <div className="mt-3 flex gap-2">
-                    <a href={`tel:${phoneDigits(contacts.driver.phone)}`} className="btn btn-ok !py-1.5 text-sm">📞 {contacts.driver.phone}</a>
+                    <a href={`tel:${phoneDigits(contacts.driver.phone)}`} className="btn btn-ok !py-1.5 text-sm">📞 <bdi dir="ltr">{contacts.driver.phone}</bdi></a>
                     <a href={`https://wa.me/${phoneDigits(contacts.driver.phone).replace(/^0/, "213").replace("+", "")}`} target="_blank" className="btn btn-ghost !py-1.5 text-sm">WhatsApp</a>
                   </div>
                 </div>
                 <div className="rounded-2xl bg-violet-50 p-4">
-                  <p className="text-xs font-bold uppercase text-violet-700">Vous</p>
+                  <p className="text-xs font-bold uppercase text-violet-700">{t("Vous")}</p>
                   <p className="mt-1 font-extrabold">{contacts.client.name}</p>
-                  <p className="text-sm">{contacts.client.phone}</p>
+                  <p className="text-sm" dir="ltr">{contacts.client.phone}</p>
                 </div>
               </div>
             )}
@@ -148,10 +150,10 @@ export default function ClientOrder() {
       </div>
 
       <div className="card space-y-3 p-4 lg:col-span-2 lg:sticky lg:top-24 lg:self-start">
-        <p className="font-extrabold">{order.status === "in_transit" ? "🚚 Suivi en direct" : "Itinéraire"}</p>
+        <p className="font-extrabold">{order.status === "in_transit" ? t("🚚 Suivi en direct") : t("Itinéraire")}</p>
         <MapView height={360} markers={markers} line={markers.filter((m) => m.emoji !== "🚚").map((m) => [m.lat, m.lng] as [number, number])} />
         {["matched", "in_transit"].includes(order.status) && (
-          <p className="text-xs text-slate-500">{loc ? `Dernière position du transporteur : ${dateTimeFr(loc.updated_at)}` : "En attente de la position GPS du transporteur…"}</p>
+          <p className="text-xs text-slate-500">{loc ? t("Dernière position du transporteur : {d}", { d: dateTime(loc.updated_at) }) : t("En attente de la position GPS du transporteur…")}</p>
         )}
       </div>
     </div>
