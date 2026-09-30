@@ -12,12 +12,13 @@ export default function Splash() {
     try { seen = sessionStorage.getItem(KEY) === "1"; sessionStorage.setItem(KEY, "1"); } catch {}
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (seen) return setPhase("gone");
-    const t1 = setTimeout(() => setPhase("out"), reduced ? 600 : 2600);
-    const t2 = setTimeout(() => setPhase("gone"), reduced ? 900 : 3300);
+    const t1 = setTimeout(() => setPhase("out"), reduced ? 600 : 3700);
+    const t2 = setTimeout(() => setPhase("gone"), reduced ? 900 : 4500);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
 
   if (phase === "gone") return null;
+  const sparks = [[12, 70, -20, 0.4], [22, 30, 30, 1.1], [33, 82, -10, 1.7], [45, 18, 20, 0.7], [58, 76, -30, 1.4], [68, 26, 10, 2.0], [78, 64, 25, 0.2], [88, 40, -15, 1.0], [8, 48, 15, 1.9], [92, 78, -25, 0.6]];
   const letters = "Flixi".split("");
   const letters2 = "Tawsil".split("");
 
@@ -27,7 +28,12 @@ export default function Splash() {
       <div className="splash-orb splash-orb-b" />
       <div className="splash-orb splash-orb-c" />
 
-      <div className="relative flex flex-col items-center">
+      {sparks.map(([l, t, dx, d], i) => (
+        <span key={i} className="spark" style={{ left: `${l}%`, top: `${t}%`, ["--dx" as string]: `${dx}px`, animationDelay: `${d}s` }} />
+      ))}
+
+      <div className="splash-stage">
+        <span className="splash-glow" />
         <div className="splash-logo">
           <span className="splash-ring" />
           <span className="splash-ring splash-ring-2" />
@@ -52,9 +58,9 @@ export default function Splash() {
         </div>
 
         <h1 className="splash-word">
-          {letters.map((c, i) => <span key={i} className="grad-text-w" style={{ animationDelay: `${0.9 + i * 0.07}s` }}>{c}</span>)}
+          {letters.map((c, i) => <span key={i} className="mask"><span className="grad-text-w" style={{ animationDelay: `${1.4 + i * 0.08}s, 1.8s` }}>{c}</span></span>)}
           <span className="splash-gap" />
-          {letters2.map((c, i) => <span key={i} style={{ animationDelay: `${1.25 + i * 0.07}s`, color: "#fff" }}>{c}</span>)}
+          {letters2.map((c, i) => <span key={i} className="mask"><span style={{ animationDelay: `${1.8 + i * 0.08}s`, color: "#fff" }}>{c}</span></span>)}
         </h1>
         <p className="splash-tag">توصيل · TRANSPORT PARTOUT EN ALGÉRIE</p>
 
