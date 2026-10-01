@@ -395,4 +395,13 @@ export const DICT: Record<string, [string, string, string]> = {
   "Nouveau mot de passe": ["New password", "كلمة مرور جديدة", "كلمة سر جديدة"],
   "Confirmer le mot de passe": ["Confirm password", "تأكيد كلمة المرور", "أكّد كلمة السر"],
   "Enregistrer le nouveau mot de passe": ["Save the new password", "حفظ كلمة المرور الجديدة", "سجّل كلمة السر الجديدة"],
+  "Réserver ce trajet": ["Book this trip", "حجز هذه الرحلة", "احجز هاد الرحلة"],
+  "Le transporteur annonce un prix à partir de {p}.": ["The carrier announces a price from {p}.", "يعلن الناقل عن سعر ابتداءً من {p}.", "الناقل ناشر ثمن من {p}."],
+  "Le transporteur devra confirmer votre réservation. Les numéros de téléphone s'affichent dès qu'il a accepté.": ["The carrier will have to confirm your booking. Phone numbers are shown as soon as they accept.", "يجب على الناقل تأكيد حجزك. تظهر أرقام الهاتف بمجرد قبوله.", "الناقل لازم يأكّد الحجز تاعك. نمرات التيليفون تظهر كي يقبل."],
+  "Envoi…": ["Sending…", "جارٍ الإرسال…", "راهو يتبعث…"],
+  "Envoyer la réservation": ["Send the booking", "إرسال الحجز", "ابعث الحجز"],
+  "Réservation sur votre trajet": ["Booking on your trip", "حجز على رحلتك", "حجز على رحلتك"],
+  "trajet indisponible": ["trip unavailable", "الرحلة غير متاحة", "الرحلة ما بقاتش متاحة"],
+  "prix minimum 1000": ["minimum price 1000", "الحد الأدنى للسعر 1000", "أقل ثمن 1000"],
+  "compte client requis": ["customer account required", "يلزم حساب زبون", "لازم حساب زبون"],
 };

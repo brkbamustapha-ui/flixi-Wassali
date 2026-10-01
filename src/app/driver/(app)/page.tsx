@@ -69,6 +69,7 @@ export default function DriverHome() {
           <h2 className="text-xl font-extrabold">🔔 {t("Clients qui ont accepté votre prix")}</h2>
           {pending.map((p) => (
             <div key={p.id} className="card border-2 !border-brand-pink p-5">
+              {p.order.direct_driver_id === profile.id && <span className="badge mb-1 bg-violet-100 text-violet-700">📌 {t("Réservation sur votre trajet")}</span>}
               <p className="font-extrabold">{t(p.order.goods_type)} · {w(p.order.from_wilaya)} → {w(p.order.to_wilaya)}</p>
               <p className="mt-1 text-sm">{t("Le client a accepté votre offre de {p}. Confirmez pour conclure et afficher les numéros de téléphone.", { p: da(p.price) })}</p>
               <p className="mt-1 text-xs text-slate-500">{t("Vous encaisserez {a} (dont {c} de commission Flixi à verser).", { a: da(p.price + COMMISSION), c: da(COMMISSION) })}</p>

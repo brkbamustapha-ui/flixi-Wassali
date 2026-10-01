@@ -22,5 +22,5 @@ export type Order = {
   from_wilaya: string; from_address: string | null; from_lat: number | null; from_lng: number | null;
   to_wilaya: string; to_address: string | null; to_lat: number | null; to_lng: number | null;
   client_price: number; status: "open" | "matched" | "in_transit" | "delivered" | "cancelled";
-  driver_id: string | null; final_price: number | null; commission: number; created_at: string;
+  driver_id: string | null; direct_driver_id?: string | null; trip_id?: string | null; final_price: number | null; commission: number; created_at: string;
 };

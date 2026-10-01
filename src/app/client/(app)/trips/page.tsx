@@ -5,6 +5,7 @@ import { useSession } from "@/components/Session";
 import { Empty, Spinner } from "@/components/ui";
 import { da } from "@/lib/format";
 import { WILAYAS } from "@/lib/wilayas";
+import BookTrip from "@/components/BookTrip";
 import { useI18n } from "@/lib/i18n";
 
 type Trip = { id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; price: number | null; note: string | null; driver_first_name: string; vehicle_type: string; deliveries: number };
@@ -15,6 +16,7 @@ export default function ClientTrips() {
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [f, setF] = useState("");
   const [toF, setToF] = useState("");
+  const [booking, setBooking] = useState<Trip | null>(null);
 
   useEffect(() => {
     sb.rpc("flixi_available_trips").then(({ data }) => setTrips((data as Trip[]) ?? []));
@@ -45,12 +47,16 @@ export default function ClientTrips() {
               {x.note && <p className="mt-2 text-sm text-slate-500">{x.note}</p>}
               <div className="mt-4 flex items-center justify-between">
                 <span className="font-extrabold">{x.price ? t("dès {p}", { p: da(x.price) }) : t("Prix à négocier")}</span>
-                <Link href={`/client/new?from=${encodeURIComponent(x.from_wilaya)}&to=${encodeURIComponent(x.to_wilaya)}`} className="btn btn-primary !py-2 text-sm">{t("Expédier")}</Link>
+                <div className="flex gap-2">
+                  <Link href={`/client/new?from=${encodeURIComponent(x.from_wilaya)}&to=${encodeURIComponent(x.to_wilaya)}`} className="btn btn-ghost !px-3 !py-2 text-sm">{t("Expédier")}</Link>
+                  <button type="button" onClick={() => setBooking(x)} className="btn btn-primary !py-2 text-sm">✔ {t("Réserver ce trajet")}</button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+      {booking && <BookTrip trip={booking} sb={sb} onClose={() => setBooking(null)} />}
     </div>
   );
 }
