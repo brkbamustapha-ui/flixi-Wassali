@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { adminRpc } from "@/lib/admin";
 import { Pill } from "@/components/AdminUi";
+import DecisionForm from "./DecisionForm";
 import { dateTimeFr, da } from "@/lib/format";
 import { APPROVAL_LABEL, APPROVAL_TONE, type AdminDriver } from "@/lib/adminTypes";
 
@@ -11,13 +12,6 @@ const LABELS: [keyof NonNullable<Files>, string][] = [
   ["carte_grise_img", "Carte grise"], ["permis_img", "Permis de conduire"], ["selfie_img", "Selfie"], ["vehicle_img", "Véhicule"], ["plate_img", "Plaque / matricule"],
 ];
 
-async function setApproval(fd: FormData) {
-  "use server";
-  const id = String(fd.get("id"));
-  await adminRpc("flixi_admin_set_approval", { p_id: id, p_approval: String(fd.get("approval")), p_note: String(fd.get("note") ?? "") || null });
-  revalidatePath(`/admin/drivers/${id}`);
-  revalidatePath("/admin/drivers");
-}
 async function setStatus(fd: FormData) {
   "use server";
   const id = String(fd.get("id"));
@@ -69,16 +63,7 @@ export default async function DriverDetail({ params }: { params: Promise<{ id: s
               ))}
             </div>
           </div>
-          <form action={setApproval} className="card space-y-3 p-6">
-            <h2 className="text-lg font-extrabold">Décision</h2>
-            <input type="hidden" name="id" value={id} />
-            <textarea name="note" defaultValue={d.admin_note ?? ""} placeholder="Note interne / motif de refus (visible par le transporteur)" className="textarea" rows={2} />
-            <div className="flex flex-wrap gap-2">
-              <button name="approval" value="approved" className="btn btn-ok">✔ Approuver</button>
-              <button name="approval" value="rejected" className="btn btn-danger">✖ Refuser</button>
-              <button name="approval" value="pending" className="btn btn-ghost">Remettre à valider</button>
-            </div>
-          </form>
+          <DecisionForm id={id} note={d.admin_note ?? ""} />
         </>
       )}
       <form action={setStatus}>

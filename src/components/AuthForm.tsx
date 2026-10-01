@@ -32,11 +32,22 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [info, setInfo] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
   const isDriver = role === "driver";
+
+  async function resend() {
+    setErr(""); setBusy(true);
+    const { error } = await supabase().auth.resend({ type: "signup", email: pendingEmail, options: { emailRedirectTo: `${location.origin}/auth/callback` } });
+    setBusy(false);
+    if (error) return setErr(error.status === 429 ? t("Trop d'inscriptions en peu de temps. Réessayez dans une heure ou contactez le support.") : error.message);
+    setInfo(t("Email de confirmation renvoyé."));
+  }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setErr(""); setInfo("");
+    if (busy) return;
+    setErr(""); setInfo(""); setPendingEmail("");
     const f = new FormData(e.currentTarget);
     const email = String(f.get("email")).trim();
     const password = String(f.get("password"));
@@ -45,7 +56,14 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
     try {
       if (mode === "login") {
         const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) throw new Error(t("Email ou mot de passe incorrect."));
+        if (error) {
+          if (error.code === "email_not_confirmed" || /not confirmed/i.test(error.message)) {
+            setPendingEmail(email);
+            throw new Error(t("Votre email n'est pas encore confirmé. Ouvrez le lien reçu par email (vérifiez aussi les spams)."));
+          }
+          if (error.status === 429) throw new Error(t("Trop de tentatives. Patientez quelques minutes puis réessayez."));
+          throw new Error(t("Email ou mot de passe incorrect."));
+        }
         return router.replace(`/${role}`);
       }
       const first = String(f.get("first_name")).trim(), last = String(f.get("last_name")).trim(), phone = String(f.get("phone")).trim();
@@ -56,8 +74,13 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
         email, password,
         options: { data: { flixi_role: role, first_name: first, last_name: last, phone }, emailRedirectTo: `${location.origin}/auth/callback` },
       });
-      if (error) throw new Error(error.message.includes("registered") ? t("Cet email a déjà un compte. Connectez-vous.") : error.message);
+      if (error) {
+        if (error.status === 429 || error.code === "over_email_send_rate_limit") throw new Error(t("Trop d'inscriptions en peu de temps. Réessayez dans une heure ou contactez le support."));
+        throw new Error(error.message.includes("registered") ? t("Cet email a déjà un compte. Connectez-vous.") : error.message);
+      }
+      if (data.user && data.user.identities?.length === 0) throw new Error(t("Cet email a déjà un compte. Connectez-vous."));
       if (data.session) return router.replace(`/${role}`);
+      setPendingEmail(email);
       setInfo(t("Compte créé ! Vérifiez votre boîte email pour confirmer votre adresse, puis connectez-vous."));
       setMode("login");
     } catch (e) {
@@ -99,7 +122,12 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
                 </>
               )}
               <Field label={t("Email")}><input name="email" required type="email" dir="ltr" className="input text-start" autoComplete="email" /></Field>
-              <Field label={t("Mot de passe")}><input name="password" required type="password" minLength={6} dir="ltr" className="input text-start" autoComplete={mode === "login" ? "current-password" : "new-password"} /></Field>
+              <Field label={t("Mot de passe")}>
+                <div className="relative">
+                  <input name="password" required type={showPw ? "text" : "password"} minLength={6} dir="ltr" className="input text-start !pe-12" autoComplete={mode === "login" ? "current-password" : "new-password"} />
+                  <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={t("Afficher le mot de passe")} className="absolute inset-y-0 end-3 text-lg">{showPw ? "🙈" : "👁"}</button>
+                </div>
+              </Field>
               {mode === "signup" && (
                 <label className="flex items-start gap-2 text-sm">
                   <input name="terms" type="checkbox" className="mt-1 h-4 w-4 accent-pink-600" />
@@ -108,6 +136,9 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
               )}
               {err && <Alert>{err}</Alert>}
               {info && <Alert kind="ok">{info}</Alert>}
+              {pendingEmail && (
+                <button type="button" disabled={busy} onClick={resend} className="btn btn-ghost w-full text-sm">✉ {t("Renvoyer l'email de confirmation")}</button>
+              )}
               <button disabled={busy} className="btn btn-primary w-full">{busy ? t("Veuillez patienter…") : mode === "signup" ? (isDriver ? t("Continuer vers mon dossier") : t("Créer mon compte")) : t("Connexion")}</button>
             </form>
           </div>

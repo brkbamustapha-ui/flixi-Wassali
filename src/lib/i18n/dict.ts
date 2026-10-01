@@ -377,4 +377,10 @@ export const DICT: Record<string, [string, string, string]> = {
   "action impossible": ["action not possible", "الإجراء غير ممكن", "ما تقدرش دير هاد الحاجة"],
   "offre non confirmable": ["offer can't be confirmed", "لا يمكن تأكيد العرض", "ما تقدرش تأكّد هاد العرض"],
   "compte non approuvé": ["account not approved", "الحساب غير معتمد", "الحساب باقي ما تقبلش"],
+  "Votre email n'est pas encore confirmé. Ouvrez le lien reçu par email (vérifiez aussi les spams).": ["Your email isn't confirmed yet. Open the link sent by email (check spam too).", "بريدك لم يتم تأكيده بعد. افتح الرابط المرسل إلى بريدك (وتحقّق من الرسائل المزعجة أيضًا).", "الإيمايل تاعك باقي ما تأكّدش. افتح اللّيان لي جاك في الإيمايل (شوف حتى في السبام)."],
+  "Trop de tentatives. Patientez quelques minutes puis réessayez.": ["Too many attempts. Wait a few minutes and try again.", "محاولات كثيرة. انتظر بضع دقائق ثم أعد المحاولة.", "بزاف محاولات. استنى شوية وعاود جرّب."],
+  "Trop d'inscriptions en peu de temps. Réessayez dans une heure ou contactez le support.": ["Too many sign-ups in a short time. Try again in an hour or contact support.", "تسجيلات كثيرة في وقت قصير. أعد المحاولة بعد ساعة أو تواصل مع الدعم.", "بزاف تسجيلات في وقت قصير. عاود بعد ساعة ولا اتصل بالدعم."],
+  "Afficher le mot de passe": ["Show password", "إظهار كلمة المرور", "ورّي كلمة السر"],
+  "Renvoyer l'email de confirmation": ["Resend confirmation email", "إعادة إرسال بريد التأكيد", "عاود ابعث إيمايل التأكيد"],
+  "Email de confirmation renvoyé.": ["Confirmation email sent again.", "تمت إعادة إرسال بريد التأكيد.", "الإيمايل تبعث من جديد."],
 };
