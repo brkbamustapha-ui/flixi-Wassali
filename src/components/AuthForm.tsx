@@ -34,6 +34,7 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
   const [info, setInfo] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
+  const [forgot, setForgot] = useState(false);
   const isDriver = role === "driver";
 
   async function resend() {
@@ -108,6 +109,7 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
               </button>
             ))}
           </div>
+          {forgot ? <ForgotForm onBack={() => setForgot(false)} /> : (
           <div className="space-y-4">
             <GoogleButton role={role} />
             <div className="flex items-center gap-3 text-xs font-bold text-slate-400"><span className="h-px flex-1 bg-slate-200" />{t("OU")}<span className="h-px flex-1 bg-slate-200" /></div>
@@ -128,6 +130,9 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
                   <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={t("Afficher le mot de passe")} className="absolute inset-y-0 end-3 text-lg">{showPw ? "🙈" : "👁"}</button>
                 </div>
               </Field>
+              {mode === "login" && (
+                <button type="button" onClick={() => { setForgot(true); setErr(""); setInfo(""); }} className="text-sm font-bold text-brand-pink hover:underline">{t("Mot de passe oublié ?")}</button>
+              )}
               {mode === "signup" && (
                 <label className="flex items-start gap-2 text-sm">
                   <input name="terms" type="checkbox" className="mt-1 h-4 w-4 accent-pink-600" />
@@ -142,6 +147,7 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
               <button disabled={busy} className="btn btn-primary w-full">{busy ? t("Veuillez patienter…") : mode === "signup" ? (isDriver ? t("Continuer vers mon dossier") : t("Créer mon compte")) : t("Connexion")}</button>
             </form>
           </div>
+          )}
         </div>
         <p className="mt-5 text-center text-sm text-slate-500">
           {isDriver ? t("Vous voulez expédier ?") : t("Vous êtes transporteur ?")}{" "}
@@ -149,5 +155,38 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
         </p>
       </div>
     </div>
+  );
+}
+
+/** Étape 1 : envoi du lien de réinitialisation par email */
+function ForgotForm({ onBack }: { onBack: () => void }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [sent, setSent] = useState(false);
+
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (busy) return;
+    setErr(""); setBusy(true);
+    const email = String(new FormData(e.currentTarget).get("email")).trim();
+    const { error } = await supabase().auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/auth/callback` });
+    setBusy(false);
+    if (error) return setErr(error.status === 429 ? t("Trop de tentatives. Patientez quelques minutes puis réessayez.") : error.message);
+    setSent(true);
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <div>
+        <h2 className="text-lg font-extrabold">{t("Mot de passe oublié ?")}</h2>
+        <p className="mt-1 text-sm text-slate-500">{t("Entrez votre email : nous vous envoyons un lien pour choisir un nouveau mot de passe.")}</p>
+      </div>
+      <Field label={t("Email")}><input name="email" required type="email" dir="ltr" className="input text-start" autoComplete="email" /></Field>
+      {err && <Alert>{err}</Alert>}
+      {sent && <Alert kind="ok">{t("Si un compte existe avec cet email, un lien de réinitialisation vient d'être envoyé. Vérifiez aussi vos spams.")}</Alert>}
+      <button disabled={busy || sent} className="btn btn-primary w-full">{busy ? t("Veuillez patienter…") : t("Envoyer le lien")}</button>
+      <button type="button" onClick={onBack} className="w-full text-center text-sm font-bold text-slate-500 hover:text-brand-pink">← {t("Retour à la connexion")}</button>
+    </form>
   );
 }
