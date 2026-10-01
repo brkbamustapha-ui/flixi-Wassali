@@ -7,32 +7,37 @@ import { COMMISSION, ORDER_STATUS, da } from "@/lib/format";
 import type { Order } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 
-type PendingBid = { id: string; price: number; order: Order };
+type WinTrip = { id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; phase: string; winning_bid_id: string | null; bids: { id: string; price: number; status: string; goods_type: string; client_first_name: string; description: string | null; weight_kg: number | null }[] };
+type WonBid = { id: string; price: number; order: Order };
 
 export default function DriverHome() {
   const { sb, profile, driver } = useSession();
   const { t, w, date } = useI18n();
   const [orders, setOrders] = useState<Order[] | null>(null);
-  const [pending, setPending] = useState<PendingBid[]>([]);
+  const [decisions, setDecisions] = useState<WinTrip[]>([]);
+  const [waiting, setWaiting] = useState<WonBid[]>([]);
   const [unpaid, setUnpaid] = useState(0);
   const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
     const { data: o } = await sb.from("flixi_orders").select("*").eq("driver_id", profile.id).order("created_at", { ascending: false });
-    const { data: b } = await sb.from("flixi_bids").select("id,price,order_id").eq("status", "client_accepted");
+    await sb.rpc("flixi_settle_all");
+    const { data: tr } = await sb.rpc("flixi_my_trips_overview");
+    setDecisions(((tr as WinTrip[]) ?? []).filter((x) => x.phase === "awaiting_driver"));
+    const { data: b } = await sb.from("flixi_bids").select("id,price,order_id").eq("status", "won");
     const ids = (b ?? []).map((x) => x.order_id);
-    const { data: po } = ids.length ? await sb.from("flixi_orders").select("*").in("id", ids) : { data: [] as Order[] };
+    const { data: po } = ids.length ? await sb.from("flixi_orders").select("*").in("id", ids).eq("status", "open") : { data: [] as Order[] };
+    setWaiting((b ?? []).map((x) => ({ id: x.id, price: x.price, order: (po as Order[]).find((p) => p.id === x.order_id)! })).filter((x) => x.order));
     const { data: c } = await sb.from("flixi_commissions").select("amount").eq("status", "unpaid");
     setOrders((o as Order[]) ?? []);
-    setPending((b ?? []).map((x) => ({ id: x.id, price: x.price, order: (po as Order[]).find((p) => p.id === x.order_id)! })).filter((x) => x.order));
     setUnpaid((c ?? []).reduce((s, x) => s + x.amount, 0));
   }, [sb, profile.id]);
 
   useEffect(() => { load(); const t = setInterval(load, 8000); return () => clearInterval(t); }, [load]);
 
-  async function answer(id: string, ok: boolean) {
+  async function answer(tripId: string, ok: boolean) {
     setErr("");
-    const { error } = await sb.rpc(ok ? "flixi_driver_confirm_bid" : "flixi_driver_decline_bid", { p_bid: id });
+    const { error } = await sb.rpc(ok ? "flixi_trip_accept_winner" : "flixi_trip_decline_winner", { p_trip: tripId });
     if (error) setErr(t(error.message));
     load();
   }
@@ -64,19 +69,34 @@ export default function DriverHome() {
       </div>
 
       {err && <Alert>{err}</Alert>}
-      {pending.length > 0 && (
+      {decisions.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xl font-extrabold">🔔 {t("Clients qui ont accepté votre prix")}</h2>
-          {pending.map((p) => (
-            <div key={p.id} className="card border-2 !border-brand-pink p-5">
-              {p.order.direct_driver_id === profile.id && <span className="badge mb-1 bg-violet-100 text-violet-700">📌 {t("Réservation sur votre trajet")}</span>}
-              <p className="font-extrabold">{t(p.order.goods_type)} · {w(p.order.from_wilaya)} → {w(p.order.to_wilaya)}</p>
-              <p className="mt-1 text-sm">{t("Le client a accepté votre offre de {p}. Confirmez pour conclure et afficher les numéros de téléphone.", { p: da(p.price) })}</p>
-              <p className="mt-1 text-xs text-slate-500">{t("Vous encaisserez {a} (dont {c} de commission Flixi à verser).", { a: da(p.price + COMMISSION), c: da(COMMISSION) })}</p>
-              <div className="mt-3 flex gap-2">
-                <button onClick={() => answer(p.id, true)} className="btn btn-primary !py-2 text-sm">✔ {t("Confirmer")}</button>
-                <button onClick={() => answer(p.id, false)} className="btn btn-danger !py-2 text-sm">{t("Refuser")}</button>
+          <h2 className="text-xl font-extrabold">🏆 {t("Enchères gagnées à confirmer")}</h2>
+          {decisions.map((x) => {
+            const win = x.bids.find((b) => b.id === x.winning_bid_id);
+            if (!win) return null;
+            return (
+              <div key={x.id} className="card border-2 !border-brand-pink p-5">
+                <p className="font-extrabold">{w(x.from_wilaya)} → {w(x.to_wilaya)} · 🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}</p>
+                <p className="mt-1 text-sm">{t("Le client {n} a gagné l'enchère avec {p}. Acceptez pour conclure et afficher les numéros de téléphone ; si vous refusez, l'enchère recommence.", { n: win.client_first_name, p: da(win.price) })}</p>
+                <p className="mt-1 text-xs text-slate-500">{t(win.goods_type)}{win.weight_kg ? ` · ${win.weight_kg} kg` : ""} — {t("Vous encaisserez {a} (dont {c} de commission Flixi à verser).", { a: da(win.price + COMMISSION), c: da(COMMISSION) })}</p>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => answer(x.id, true)} className="btn btn-primary !py-2 text-sm">✔ {t("Confirmer")}</button>
+                  <button onClick={() => answer(x.id, false)} className="btn btn-danger !py-2 text-sm">{t("Refuser")}</button>
+                </div>
               </div>
+            );
+          })}
+        </div>
+      )}
+
+      {waiting.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-xl font-extrabold">⏳ {t("Mes offres gagnantes — en attente du client")}</h2>
+          {waiting.map((x) => (
+            <div key={x.id} className="card flex flex-wrap items-center justify-between gap-2 p-4 text-sm">
+              <span className="font-extrabold">{t(x.order.goods_type)} · {w(x.order.from_wilaya)} → {w(x.order.to_wilaya)}</span>
+              <span className="badge bg-amber-100 text-amber-800">{da(x.price)} · {t("en attente du client")}</span>
             </div>
           ))}
         </div>

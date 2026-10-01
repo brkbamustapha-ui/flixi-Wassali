@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useSession } from "@/components/Session";
 import { Alert, Field, PriceBreakdown } from "@/components/ui";
-import { GOODS_TYPES, MIN_PRICE, da } from "@/lib/format";
+import { GOODS_TYPES, MIN_PRICE, da, auctionPreview } from "@/lib/format";
 import { WILAYAS, findWilaya, wilayaLabel } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
@@ -26,6 +26,8 @@ export default function NewOrder() {
   const [toPt, setToPt] = useState<Pt>(null);
   const [placing, setPlacing] = useState<"from" | "to">("from");
   const [price, setPrice] = useState("");
+  const [dDate, setDDate] = useState("");
+  const [dTime, setDTime] = useState("08:00");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -42,6 +44,8 @@ export default function NewOrder() {
   const b = toPt ?? { lat: wt.lat, lng: wt.lng };
   const priceN = Number(price);
   const priceOk = Number.isFinite(priceN) && priceN >= MIN_PRICE;
+  const preview = auctionPreview(dDate, dTime);
+  const today = new Date().toISOString().slice(0, 10);
 
   const markers = useMemo(() => [
     { ...a, color: "#ff7a1a", emoji: "📍", label: t("Départ : {w}", { w: w(from) }) },
@@ -60,13 +64,15 @@ export default function NewOrder() {
     setErr("");
     if (from === to && !fromAddr) return setErr(t("Départ et arrivée sont dans la même wilaya : précisez les adresses."));
     if (!priceOk) return setErr(t("Le prix minimum est de {p}.", { p: da(MIN_PRICE) }));
+    if (!preview) return setErr(t("Choisissez la date et l'heure de départ."));
+    if (!preview.ok) return setErr(t("Le départ doit être dans plus de 2 heures."));
     setBusy(true);
     const { data, error } = await sb.from("flixi_orders").insert({
       client_id: profile.id, goods_type: goods, description: desc || null, weight_kg: weight ? Number(weight) : null,
       from_wilaya: from, from_address: fromAddr || null, from_lat: a.lat, from_lng: a.lng,
-      to_wilaya: to, to_address: toAddr || null, to_lat: b.lat, to_lng: b.lng, client_price: priceN,
+      to_wilaya: to, to_address: toAddr || null, to_lat: b.lat, to_lng: b.lng, client_price: priceN, depart_date: dDate, depart_time: dTime,
     }).select("id").single();
-    if (error) { setBusy(false); return setErr(error.message); }
+    if (error) { setBusy(false); return setErr(t(error.message)); }
     router.push(`/client/orders/${data.id}`);
   }
 
@@ -89,6 +95,13 @@ export default function NewOrder() {
             <Field label={t("Adresse d'arrivée")}><input className="input" value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
           </div>
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={"🗓 " + t("Date de départ")}><input className="input" type="date" min={today} required value={dDate} onChange={(e) => setDDate(e.target.value)} dir="ltr" /></Field>
+          <Field label={"🕗 " + t("Heure de départ")}><input className="input" type="time" required value={dTime} onChange={(e) => setDTime(e.target.value)} dir="ltr" /></Field>
+        </div>
+        {preview && (preview.ok
+          ? <Alert kind="info">⏱ {t("Les transporteurs enchérissent jusqu'au {d}. Le prix le plus bas gagne, puis vous confirmez.", { d: preview.end.toLocaleString(lang === "fr" ? "fr-DZ" : lang === "en" ? "en-GB" : "ar-DZ-u-nu-latn", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) })}</Alert>
+          : <Alert>{t("Le départ doit être dans plus de 2 heures.")}</Alert>)}
         <Field label={t("Votre prix (DA) — minimum {p}", { p: da(MIN_PRICE) })} hint={t("Les transporteurs peuvent accepter ce prix ou proposer moins cher. Vous choisissez la meilleure offre.")}>
           <input className="input !text-lg !font-extrabold" type="number" min={MIN_PRICE} step={100} required value={price} onChange={(e) => setPrice(e.target.value)} placeholder={t("ex : 8000")} dir="ltr" />
         </Field>

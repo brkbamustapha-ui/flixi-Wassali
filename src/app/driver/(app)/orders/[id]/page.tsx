@@ -6,6 +6,7 @@ import { useSession } from "@/components/Session";
 import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
 import { ORDER_STATUS, phoneDigits } from "@/lib/format";
 import type { Order } from "@/lib/supabase";
+import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[340px] animate-pulse rounded-2xl bg-violet-100" /> });
@@ -62,8 +63,8 @@ export default function DriverOrder() {
   const markers = useMemo(() => {
     if (!order) return [];
     const m = [];
-    if (order.from_lat != null) m.push({ lat: order.from_lat, lng: order.from_lng!, color: "#ff7a1a", emoji: "📍", label: t("Chargement : {w}", { w: w(order.from_wilaya) }) });
-    if (order.to_lat != null) m.push({ lat: order.to_lat, lng: order.to_lng!, color: "#7b3ff2", emoji: "🏁", label: t("Livraison : {w}", { w: w(order.to_wilaya) }) });
+    { const a = order.from_lat != null ? { lat: order.from_lat, lng: order.from_lng! } : findWilaya(order.from_wilaya); if (a) m.push({ lat: a.lat, lng: a.lng, color: "#ff7a1a", emoji: "📍", label: t("Chargement : {w}", { w: w(order.from_wilaya) }) }); }
+    { const z = order.to_lat != null ? { lat: order.to_lat, lng: order.to_lng! } : findWilaya(order.to_wilaya); if (z) m.push({ lat: z.lat, lng: z.lng, color: "#7b3ff2", emoji: "🏁", label: t("Livraison : {w}", { w: w(order.to_wilaya) }) }); }
     if (pos) m.push({ lat: pos.lat, lng: pos.lng, color: "#ff2e7e", emoji: "🚚", label: t("Ma position") });
     return m;
   }, [order, pos, t, w]);

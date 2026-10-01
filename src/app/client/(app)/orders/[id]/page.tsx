@@ -4,8 +4,10 @@ import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useSession } from "@/components/Session";
 import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
+import { AuctionBanner } from "@/components/Countdown";
 import { ORDER_STATUS, da, phoneDigits } from "@/lib/format";
 import type { Order } from "@/lib/supabase";
+import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[340px] animate-pulse rounded-2xl bg-violet-100" /> });
@@ -60,8 +62,8 @@ export default function ClientOrder() {
   const markers = useMemo(() => {
     if (!order) return [];
     const m = [];
-    if (order.from_lat != null) m.push({ lat: order.from_lat, lng: order.from_lng!, color: "#ff7a1a", emoji: "📍", label: t("Départ : {w}", { w: w(order.from_wilaya) }) });
-    if (order.to_lat != null) m.push({ lat: order.to_lat, lng: order.to_lng!, color: "#7b3fff", emoji: "🏁", label: t("Arrivée : {w}", { w: w(order.to_wilaya) }) });
+    { const a = order.from_lat != null ? { lat: order.from_lat, lng: order.from_lng! } : findWilaya(order.from_wilaya); if (a) m.push({ lat: a.lat, lng: a.lng, color: "#ff7a1a", emoji: "📍", label: t("Départ : {w}", { w: w(order.from_wilaya) }) }); }
+    { const z = order.to_lat != null ? { lat: order.to_lat, lng: order.to_lng! } : findWilaya(order.to_wilaya); if (z) m.push({ lat: z.lat, lng: z.lng, color: "#7b3fff", emoji: "🏁", label: t("Arrivée : {w}", { w: w(order.to_wilaya) }) }); }
     if (loc) m.push({ lat: loc.lat, lng: loc.lng, color: "#ff2e7e", emoji: "🚚", label: t("Votre marchandise") });
     return m;
   }, [order, loc, t, w]);
@@ -70,6 +72,7 @@ export default function ClientOrder() {
   const st = ORDER_STATUS[order.status];
   const waiting = bids.find((b) => b.status === "client_accepted");
   const best = bids.length ? Math.min(...bids.map((b) => b.price)) : null;
+  const winner = bids.find((b) => b.status === "won");
 
   return (
     <div className="grid gap-6 lg:grid-cols-5">
@@ -90,38 +93,62 @@ export default function ClientOrder() {
         {err && <Alert>{err}</Alert>}
 
         {order.status === "open" && (
-          <div className="card p-5 sm:p-6">
-            <div className="flex items-center justify-between">
+          <div className="card space-y-4 p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-extrabold">{t("Offres des transporteurs")} ({bids.length})</h2>
               <button onClick={() => act("cancel", () => sb.rpc("flixi_cancel_order", { p_order: id }))} disabled={!!busy} className="btn btn-danger !py-1.5 text-sm">{t("Annuler la commande")}</button>
             </div>
-            {waiting && <div className="mt-3"><Alert kind="info">⏳ {t("Vous avez accepté l'offre de {n} ({p}). En attente de la confirmation du transporteur.", { n: waiting.driver_first_name, p: da(waiting.price) })}</Alert></div>}
+
+            {order.phase === "bidding" && (
+              <>
+                <AuctionBanner endsAt={order.auction_ends_at ?? null} round={order.auction_round} />
+                <p className="text-xs font-semibold text-slate-500">🏆 {t("Le prix le plus bas gagne l'enchère. À la fin, vous confirmez le gagnant ; si vous refusez, l'enchère recommence.")}</p>
+              </>
+            )}
+
+            {order.phase === "awaiting_client" && winner && (
+              <div className="rounded-2xl border-2 border-brand-pink bg-pink-50/50 p-4">
+                <p className="text-sm font-extrabold text-brand-pink">🏆 {t("Enchère terminée — offre gagnante")}</p>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-extrabold">🚚 {winner.driver_first_name}</p>
+                    <p className="text-xs text-slate-500">{t(winner.vehicle_type)}{winner.wilaya ? ` · ${w(winner.wilaya)}` : ""} · {t(winner.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: winner.deliveries })}</p>
+                  </div>
+                  <div className="text-end"><p className="text-xl font-extrabold">{da(winner.price)}</p><p className="text-xs font-bold text-slate-500">{t("Total : {p}", { p: da(winner.price + order.commission) })}</p></div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button disabled={!!busy} onClick={() => act("acc", () => sb.rpc("flixi_client_accept_bid", { p_bid: winner.id }))} className="btn btn-primary !py-2 text-sm">✔ {t("Accepter cette offre")}</button>
+                  <button disabled={!!busy} onClick={() => act("dec", () => sb.rpc("flixi_client_decline_bid", { p_bid: winner.id }))} className="btn btn-danger !py-2 text-sm">✖ {t("Refuser — relancer l'enchère")}</button>
+                </div>
+              </div>
+            )}
+
             {bids.length === 0 ? (
-              <p className="mt-4 rounded-xl bg-violet-50 p-6 text-center text-sm text-slate-600">{t("Aucune offre pour l'instant. Les transporteurs vérifiés voient votre commande — revenez dans quelques minutes.")}</p>
+              <p className="rounded-xl bg-violet-50 p-6 text-center text-sm text-slate-600">{t("Aucune offre pour l'instant. Les transporteurs vérifiés voient votre commande — revenez dans quelques minutes.")}</p>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="space-y-2">
                 {bids.map((b) => (
-                  <div key={b.id} className={`rounded-2xl border-2 p-4 ${b.price === best ? "border-emerald-300 bg-emerald-50/50" : "border-violet-100"} ${b.status === "client_accepted" ? "!border-brand-pink" : ""}`}>
+                  <div key={b.id} className={`rounded-2xl border-2 p-3 ${b.status === "won" ? "border-brand-pink" : b.price === best ? "border-emerald-300 bg-emerald-50/50" : "border-violet-100"}`}>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="font-extrabold">🚚 {b.driver_first_name} {b.price === best && <span className="badge ms-1 bg-emerald-100 text-emerald-700">{t("Meilleur prix")}</span>}</p>
                         <p className="text-xs text-slate-500">{t(b.vehicle_type)}{b.wilaya ? ` · ${w(b.wilaya)}` : ""} · {t(b.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: b.deliveries })}</p>
                         {b.note && <p className="mt-1 text-sm">« {b.note} »</p>}
                       </div>
-                      <div className="text-end">
-                        <p className="text-xl font-extrabold">{da(b.price)}</p>
-                        <p className="text-xs font-bold text-slate-500">{t("Total : {p}", { p: da(b.price + order.commission) })}</p>
-                      </div>
+                      <div className="text-end"><p className="text-lg font-extrabold">{da(b.price)}</p><p className="text-xs font-bold text-slate-500">{t("Total : {p}", { p: da(b.price + order.commission) })}</p></div>
                     </div>
-                    <button disabled={!!busy || b.status === "client_accepted"} onClick={() => act(b.id, () => sb.rpc("flixi_client_accept_bid", { p_bid: b.id }))} className="btn btn-primary mt-3 w-full !py-2 text-sm">
-                      {b.status === "client_accepted" ? t("✔ Acceptée — en attente du transporteur") : t("Accepter cette offre")}
-                    </button>
                   </div>
                 ))}
               </div>
             )}
+
+            {order.phase === "bidding" && bids.length > 0 && (
+              <button disabled={!!busy} onClick={() => act("close", () => sb.rpc("flixi_close_auction_now", { p_order: id }))} className="btn btn-ghost w-full text-sm">⏹ {t("Clôturer l'enchère maintenant")}</button>
+            )}
           </div>
         )}
+
+        {order.status === "expired" && <Alert>{t("Cette commande a expiré : aucune offre n'a été retenue avant la date de départ.")}</Alert>}
 
         {order.final_price && (
           <div className="card space-y-4 p-5 sm:p-6">

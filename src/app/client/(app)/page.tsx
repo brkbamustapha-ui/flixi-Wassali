@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "@/components/Session";
 import { Empty, Spinner } from "@/components/ui";
+import { Countdown } from "@/components/Countdown";
 import { ORDER_STATUS, da } from "@/lib/format";
 import type { Order } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
@@ -18,6 +19,7 @@ export default function ClientHome() {
   useEffect(() => {
     let alive = true;
     async function load() {
+      await sb.rpc("flixi_settle_all");
       const { data } = await sb.from("flixi_orders").select("*").eq("client_id", profile.id).order("created_at", { ascending: false });
       const { data: b } = await sb.from("flixi_bids").select("order_id,price,status").neq("status", "rejected");
       if (!alive) return;
@@ -70,6 +72,10 @@ export default function ClientHome() {
                 <div className="mt-3 flex items-center justify-between text-sm">
                   <span className="font-bold">{o.final_price ? t("Prix convenu : {p}", { p: da(o.final_price) }) : t("Votre prix : {p}", { p: da(o.client_price) })}</span>
                   {o.status === "open" && <span className="badge bg-violet-100 text-violet-700">{t(ob.length > 1 ? "{n} offres" : "{n} offre", { n: ob.length })}{best ? ` · ${t("dès {p}", { p: da(best) })}` : ""}</span>}
+                </div>
+                <div className="mt-2 text-xs font-bold">
+                  {o.status === "open" && o.phase === "bidding" && <span className="text-amber-800">⏱ {t("Fin des enchères dans")} <Countdown to={o.auction_ends_at} className="text-brand-pink" /></span>}
+                  {o.status === "open" && o.phase === "awaiting_client" && <span className="text-brand-pink">🏆 {t("Offre gagnante à confirmer")}</span>}
                 </div>
               </Link>
             );
