@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { adminRpc } from "@/lib/admin";
 import { Pill, Table, Td } from "@/components/AdminUi";
 import { dateFr } from "@/lib/format";
 
-type Client = { id: string; first_name: string; last_name: string; phone: string; email: string | null; status: string; created_at: string; orders: number };
+type Client = { id: string; first_name: string; last_name: string; phone: string; email: string | null; status: string; created_at: string; orders: number; last_ip: string | null; last_ip_at: string | null; online: boolean };
 
 async function setStatus(fd: FormData) {
   "use server";
@@ -16,11 +17,13 @@ export default async function Clients() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">Clients ({rows.length})</h1>
-      <Table heads={["Nom", "Téléphone", "Email", "Commandes", "Inscrit le", "Statut", ""]} empty={!rows.length}>
+      <Table heads={["Nom", "Téléphone", "Email", "Dernière IP", "Commandes", "Inscrit le", "Statut", ""]} empty={!rows.length}>
         {rows.map((c) => (
           <tr key={c.id}>
-            <Td className="font-bold">{c.first_name} {c.last_name}</Td>
-            <Td>{c.phone}</Td><Td>{c.email}</Td><Td>{c.orders}</Td><Td>{dateFr(c.created_at)}</Td>
+            <Td className="font-bold">{c.online && <span title="En ligne" className="me-1 text-emerald-500">●</span>}{c.first_name} {c.last_name}</Td>
+            <Td>{c.phone}</Td><Td>{c.email}</Td>
+            <Td><Link href={`/admin/users/${c.id}`} className="font-mono text-xs font-bold text-brand-pink hover:underline">{c.last_ip ?? "—"}</Link></Td>
+            <Td>{c.orders}</Td><Td>{dateFr(c.created_at)}</Td>
             <Td><Pill tone={c.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}>{c.status === "active" ? "Actif" : "Suspendu"}</Pill></Td>
             <Td>
               <form action={setStatus}>

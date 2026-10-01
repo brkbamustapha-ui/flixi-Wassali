@@ -15,13 +15,13 @@ export function Countdown({ to, className = "" }: { to: string | Date | null | u
   return <span dir="ltr" className={`tabular-nums ${className}`}>{txt}</span>;
 }
 
-/** Bandeau d'état d'une enchère (compte à rebours + tour) */
-export function AuctionBanner({ endsAt, round, label }: { endsAt: string | null; round?: number; label?: string }) {
+/** Bandeau d'état d'une enchère : ouverte à tous, seul celui qui l'a lancée peut la terminer. */
+export function AuctionBanner({ depart, round, who }: { depart?: Date | null; round?: number; who: "client" | "driver" }) {
   const { t } = useI18n();
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-gradient-to-r from-amber-50 to-pink-50 px-3 py-2 text-sm font-bold text-amber-900">
-      <span>⏱ {label ?? t("Fin des enchères dans")}</span>
-      <Countdown to={endsAt} className="text-brand-pink" />
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-gradient-to-r from-emerald-50 to-sky-50 px-3 py-2 text-sm font-bold text-emerald-900">
+      <span>🔓 {who === "client" ? t("Enchère ouverte à tous les transporteurs — seul le client peut la terminer") : t("Enchère ouverte à tous les clients — seul le transporteur peut la terminer")}</span>
+      {depart && <span className="text-xs font-semibold text-slate-600">⏱ {t("Départ dans")} <Countdown to={depart} className="text-brand-pink" /></span>}
       {round && round > 1 ? <span className="badge bg-white text-slate-600">{t("Tour {n}", { n: round })}</span> : null}
     </div>
   );

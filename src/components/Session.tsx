@@ -8,6 +8,7 @@ import { Logo } from "./Logo";
 import { Spinner } from "./ui";
 import { useI18n } from "@/lib/i18n";
 import LangSwitch from "./LangSwitch";
+import EventsHost from "./EventsHost";
 
 type Ctx = { sb: SupabaseClient; profile: Profile; driver: DriverFile | null; refresh: () => Promise<void> };
 const SessionCtx = createContext<Ctx | null>(null);
@@ -101,6 +102,7 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
           <div className="bg-rose-600 px-4 py-2 text-center text-sm font-bold text-white">{t("Votre compte est suspendu. Contactez le support Flixi Tawsil.")}</div>
         )}
         <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+        <EventsHost sb={sb} role={role} />
         <nav className="fixed inset-x-0 bottom-0 z-30 grid border-t border-violet-100 bg-white/95 backdrop-blur md:hidden" style={{ gridTemplateColumns: `repeat(${nav.length}, 1fr)` }}>
           {nav.map((n) => {
             const active = n.href === `/${role}` ? path === n.href : path.startsWith(n.href);

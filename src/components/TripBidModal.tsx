@@ -3,12 +3,13 @@ import { FormEvent, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Alert, Field, PriceBreakdown } from "./ui";
 import { AuctionBanner } from "./Countdown";
+import { departDate } from "@/lib/format";
 import { GOODS_TYPES, MIN_PRICE, da } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
 export type PublicTrip = {
   id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; price: number | null; note: string | null;
-  driver_first_name: string; vehicle_type: string; deliveries: number; phase: string; auction_ends_at: string | null; round: number;
+  driver_first_name: string; vehicle_type: string; deliveries: number; phase: string; round: number; offers: { price: number; name: string; mine: boolean; won: boolean }[];
   is_mine: boolean; best: number | null; bids: number; my_bid: { price: number; status: string } | null;
 };
 
@@ -51,7 +52,7 @@ export default function TripBidModal({ trip, mode, sb, onClose, onDone }: { trip
           </div>
           <button type="button" onClick={onClose} aria-label={t("Fermer")} className="rounded-full bg-violet-50 px-3 py-1 text-lg font-bold">✕</button>
         </div>
-        <AuctionBanner endsAt={trip.auction_ends_at} round={trip.round} />
+        <AuctionBanner depart={departDate(trip.depart_date, trip.depart_time)} round={trip.round} who="driver" />
         {!accept && (
           <p className="rounded-xl bg-violet-50 p-3 text-xs font-semibold text-violet-800">
             🏆 {t("Le prix le plus élevé gagne l'enchère. Meilleure offre actuelle : {p}.", { p: trip.best ? da(trip.best) : "—" })}
@@ -76,7 +77,7 @@ export default function TripBidModal({ trip, mode, sb, onClose, onDone }: { trip
         {!ok && <Alert>{t("Le prix ne peut pas être inférieur à {p} (prix minimum du marché algérien).", { p: da(MIN_PRICE) })}</Alert>}
         {ok && <PriceBreakdown price={p} role="client" />}
         <p className="rounded-xl bg-violet-50 p-3 text-xs font-semibold text-violet-800">
-          ℹ️ {accept ? t("Le transporteur devra confirmer. S'il refuse, l'enchère recommence.") : t("À la fin de l'enchère, le transporteur doit accepter l'offre gagnante. S'il refuse, l'enchère recommence.")}
+          ℹ️ {accept ? t("Votre offre au prix annoncé rejoint l'enchère. Le transporteur la termine quand il le souhaite.") : t("Le transporteur termine l'enchère quand il le souhaite : le prix le plus élevé gagne, puis il accepte ou refuse (s'il refuse, l'enchère reprend).")}
         </p>
         {err && <Alert>{err}</Alert>}
         <button disabled={!ok || busy} className="btn btn-primary w-full !py-3.5 text-base">

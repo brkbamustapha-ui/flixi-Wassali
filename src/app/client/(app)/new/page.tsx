@@ -100,7 +100,7 @@ export default function NewOrder() {
           <Field label={"🕗 " + t("Heure de départ")}><input className="input" type="time" required value={dTime} onChange={(e) => setDTime(e.target.value)} dir="ltr" /></Field>
         </div>
         {preview && (preview.ok
-          ? <Alert kind="info">⏱ {t("Les transporteurs enchérissent jusqu'au {d}. Le prix le plus bas gagne, puis vous confirmez.", { d: preview.end.toLocaleString(lang === "fr" ? "fr-DZ" : lang === "en" ? "en-GB" : "ar-DZ-u-nu-latn", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) })}</Alert>
+          ? <Alert kind="info">🔓 {t("L'enchère reste ouverte à tous les transporteurs jusqu'à ce que VOUS la terminiez. Le prix le plus bas gagne.")}</Alert>
           : <Alert>{t("Le départ doit être dans plus de 2 heures.")}</Alert>)}
         <Field label={t("Votre prix (DA) — minimum {p}", { p: da(MIN_PRICE) })} hint={t("Les transporteurs peuvent accepter ce prix ou proposer moins cher. Vous choisissez la meilleure offre.")}>
           <input className="input !text-lg !font-extrabold" type="number" min={MIN_PRICE} step={100} required value={price} onChange={(e) => setPrice(e.target.value)} placeholder={t("ex : 8000")} dir="ltr" />

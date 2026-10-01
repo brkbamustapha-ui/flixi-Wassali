@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useSession } from "@/components/Session";
 import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
-import { ORDER_STATUS, da, phoneDigits } from "@/lib/format";
+import { ORDER_STATUS, da, phoneDigits, departDate } from "@/lib/format";
 import type { Order } from "@/lib/supabase";
 import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
@@ -27,6 +27,8 @@ export default function ClientOrder() {
   const [loc, setLoc] = useState<Loc>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState("");
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [online, setOnline] = useState<{ drivers: number } | null>(null);
 
   const load = useCallback(async () => {
     const { data: o } = await sb.from("flixi_orders").select("*").eq("id", id).maybeSingle();
@@ -44,6 +46,13 @@ export default function ClientOrder() {
       }
     }
   }, [sb, id, router]);
+
+  useEffect(() => {
+    const o = () => sb.rpc("flixi_online_counts").then(({ data }: { data: { drivers: number } | null }) => setOnline(data));
+    o();
+    const oi = setInterval(o, 30000);
+    return () => clearInterval(oi);
+  }, [sb]);
 
   useEffect(() => {
     load();
@@ -101,8 +110,8 @@ export default function ClientOrder() {
 
             {order.phase === "bidding" && (
               <>
-                <AuctionBanner endsAt={order.auction_ends_at ?? null} round={order.auction_round} />
-                <p className="text-xs font-semibold text-slate-500">🏆 {t("Le prix le plus bas gagne l'enchère. À la fin, vous confirmez le gagnant ; si vous refusez, l'enchère recommence.")}</p>
+                <AuctionBanner depart={order.depart_date ? departDate(order.depart_date, order.depart_time ?? "00:00") : null} round={order.auction_round} who="client" />
+                <p className="text-xs font-semibold text-slate-500">🏆 {t("Tous les transporteurs en ligne peuvent enchérir. Le prix le plus bas gagne quand VOUS terminez l'enchère ; ensuite vous confirmez le gagnant (si vous refusez, l'enchère reprend).")}</p>
               </>
             )}
 
@@ -117,7 +126,7 @@ export default function ClientOrder() {
                   <div className="text-end"><p className="text-xl font-extrabold">{da(winner.price)}</p><p className="text-xs font-bold text-slate-500">{t("Total : {p}", { p: da(winner.price + order.commission) })}</p></div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button disabled={!!busy} onClick={() => act("acc", () => sb.rpc("flixi_client_accept_bid", { p_bid: winner.id }))} className="btn btn-primary !py-2 text-sm">✔ {t("Accepter cette offre")}</button>
+                  <button disabled={!!busy} onClick={async () => { await act("acc", () => sb.rpc("flixi_client_accept_bid", { p_bid: winner.id })); window.dispatchEvent(new Event("flixi:poll")); }} className="btn btn-primary !py-2 text-sm">✔ {t("Accepter cette offre")}</button>
                   <button disabled={!!busy} onClick={() => act("dec", () => sb.rpc("flixi_client_decline_bid", { p_bid: winner.id }))} className="btn btn-danger !py-2 text-sm">✖ {t("Refuser — relancer l'enchère")}</button>
                 </div>
               </div>
@@ -142,8 +151,22 @@ export default function ClientOrder() {
               </div>
             )}
 
-            {order.phase === "bidding" && bids.length > 0 && (
-              <button disabled={!!busy} onClick={() => act("close", () => sb.rpc("flixi_close_auction_now", { p_order: id }))} className="btn btn-ghost w-full text-sm">⏹ {t("Clôturer l'enchère maintenant")}</button>
+            {order.phase === "bidding" && (
+              <div className="space-y-2">
+                {online && <p className="text-xs font-bold text-emerald-700">🟢 {t("{n} transporteurs en ligne", { n: online.drivers })}</p>}
+                {!confirmEnd ? (
+                  <button disabled={!!busy || bids.length === 0} onClick={() => setConfirmEnd(true)} className="btn btn-primary w-full text-sm">🔨 {t("Terminer l'enchère")}</button>
+                ) : (
+                  <div className="rounded-xl border-2 border-brand-pink bg-pink-50/60 p-3 text-sm">
+                    <p className="font-bold">{t("Terminer l'enchère maintenant ? L'offre la plus basse ({p}) gagnera.", { p: da(best ?? 0) })}</p>
+                    <div className="mt-2 flex gap-2">
+                      <button disabled={!!busy} onClick={async () => { await act("end", () => sb.rpc("flixi_order_end_auction", { p_order: id })); setConfirmEnd(false); window.dispatchEvent(new Event("flixi:poll")); }} className="btn btn-primary !py-1.5 text-sm">✔ {t("Oui, terminer")}</button>
+                      <button onClick={() => setConfirmEnd(false)} className="btn btn-ghost !py-1.5 text-sm">{t("Annuler")}</button>
+                    </div>
+                  </div>
+                )}
+                {bids.length === 0 && <p className="text-xs text-slate-500">{t("Vous pourrez terminer l'enchère dès la première offre.")}</p>}
+              </div>
             )}
           </div>
         )}

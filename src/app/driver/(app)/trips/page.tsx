@@ -4,19 +4,19 @@ import Link from "next/link";
 import { useSession } from "@/components/Session";
 import { Alert, Empty, Field, Spinner } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
-import { MIN_PRICE, auctionPreview, da } from "@/lib/format";
+import { MIN_PRICE, auctionPreview, da, departDate } from "@/lib/format";
 import { WILAYAS } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
 type TBid = { id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null; client_first_name: string };
 type Trip = {
   id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; price: number | null; note: string | null;
-  status: string; phase: string; auction_ends_at: string | null; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
+  status: string; phase: string; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
 };
 
 export default function Trips() {
   const { sb, profile, driver } = useSession();
-  const { t, w, date, lang } = useI18n();
+  const { t, w, date } = useI18n();
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,7 +24,6 @@ export default function Trips() {
   const [dTime, setDTime] = useState("08:00");
   const today = new Date().toISOString().slice(0, 10);
   const preview = auctionPreview(dDate, dTime);
-  const loc = lang === "fr" ? "fr-DZ" : lang === "en" ? "en-GB" : "ar-DZ-u-nu-latn";
 
   const load = useCallback(async () => {
     const { data } = await sb.rpc("flixi_my_trips_overview");
@@ -58,6 +57,7 @@ export default function Trips() {
     const { error } = await sb.rpc(fn, { p_trip: trip.id });
     if (error) setErr(t(error.message));
     load();
+    window.dispatchEvent(new Event("flixi:poll"));
   }
 
   if (!trips) return <Spinner />;
@@ -69,7 +69,7 @@ export default function Trips() {
     <div className="grid gap-6 lg:grid-cols-5">
       <form onSubmit={add} className="card space-y-4 p-5 lg:col-span-2 lg:self-start">
         <h1 className="text-xl font-extrabold">{t("Annoncer un trajet")}</h1>
-        <p className="text-sm text-slate-500">{t("Les clients voient votre trajet et enchérissent : le prix le plus élevé gagne, puis vous acceptez ou refusez.")}</p>
+        <p className="text-sm text-slate-500">{t("Les clients voient votre trajet et enchérissent : le prix le plus élevé gagne quand vous terminez l'enchère, puis vous acceptez ou refusez.")}</p>
         {!approved && <Alert kind="info">{t("Disponible après l'approbation de votre dossier.")}</Alert>}
         <Field label={t("Wilaya de départ")}><select name="from" className="select">{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
         <Field label={t("Wilaya de destination")}><select name="to" defaultValue="Oran" className="select">{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
@@ -78,7 +78,7 @@ export default function Trips() {
           <Field label={t("Heure de départ")}><input type="time" required value={dTime} onChange={(e) => setDTime(e.target.value)} className="input" dir="ltr" /></Field>
         </div>
         {preview && (preview.ok
-          ? <Alert kind="info">⏱ {t("Les clients enchérissent jusqu'au {d} (la moitié du temps avant le départ).", { d: preview.end.toLocaleString(loc, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) })}</Alert>
+          ? <Alert kind="info">🔓 {t("L'enchère reste ouverte à tous les clients jusqu'à ce que vous la terminiez.")}</Alert>
           : <Alert>{t("Le départ doit être dans plus de 2 heures.")}</Alert>)}
         <Field label={t("Prix à partir de (DA, optionnel)")} hint={t("Les clients peuvent accepter ce prix tout de suite ou enchérir à partir de 1 000 DA.")}><input name="price" type="number" min={MIN_PRICE} step={100} className="input" dir="ltr" /></Field>
         <Field label={t("Note (capacité, type de marchandise…)")}><input name="note" className="input" /></Field>
@@ -101,7 +101,7 @@ export default function Trips() {
                 <button className="btn btn-danger !px-3 !py-1 text-xs" onClick={async () => { await sb.from("flixi_trips").update({ status: "closed" }).eq("id", x.id); load(); }}>{t("Fermer")}</button>
               </div>
 
-              {x.phase === "bidding" && <AuctionBanner endsAt={x.auction_ends_at} round={x.round} />}
+              {x.phase === "bidding" && <AuctionBanner depart={departDate(x.depart_date, x.depart_time)} round={x.round} who="driver" />}
 
               {x.phase === "awaiting_driver" && winner && (
                 <div className="rounded-2xl border-2 border-brand-pink bg-pink-50/50 p-4">
@@ -131,7 +131,7 @@ export default function Trips() {
               )}
 
               {x.phase === "bidding" && x.bids.length > 0 && (
-                <button onClick={() => act("flixi_trip_close_now", x)} className="btn btn-ghost w-full text-sm">⏹ {t("Clôturer l'enchère maintenant")}</button>
+                <button onClick={() => { if (confirm(t("Terminer l'enchère maintenant ? L'offre la plus élevée ({p}) gagnera.", { p: da(x.bids[0].price) }))) act("flixi_trip_end_auction", x); }} className="btn btn-primary w-full text-sm">🔨 {t("Terminer l'enchère")}</button>
               )}
             </div>
           );

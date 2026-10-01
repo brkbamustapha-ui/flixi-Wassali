@@ -26,7 +26,7 @@ export default function ResetPassword() {
     if (busy) return;
     const f = new FormData(e.currentTarget);
     const pw = String(f.get("password")), pw2 = String(f.get("password2"));
-    if (pw.length < 6) return setErr(t("Le mot de passe doit contenir au moins 6 caractères."));
+    if (pw.length < 8) return setErr(t("Le mot de passe doit contenir au moins 8 caractères."));
     if (pw !== pw2) return setErr(t("Les deux mots de passe ne sont pas identiques."));
     setErr(""); setBusy(true);
     const sb = supabase();
@@ -60,11 +60,11 @@ export default function ResetPassword() {
               <h1 className="text-xl font-extrabold">{t("Nouveau mot de passe")}</h1>
               <Field label={t("Nouveau mot de passe")}>
                 <div className="relative">
-                  <input name="password" required type={showPw ? "text" : "password"} minLength={6} dir="ltr" className="input text-start !pe-12" autoComplete="new-password" />
+                  <input name="password" required type={showPw ? "text" : "password"} minLength={8} dir="ltr" className="input text-start !pe-12" autoComplete="new-password" />
                   <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={t("Afficher le mot de passe")} className="absolute inset-y-0 end-3 text-lg">{showPw ? "🙈" : "👁"}</button>
                 </div>
               </Field>
-              <Field label={t("Confirmer le mot de passe")}><input name="password2" required type={showPw ? "text" : "password"} minLength={6} dir="ltr" className="input text-start" autoComplete="new-password" /></Field>
+              <Field label={t("Confirmer le mot de passe")}><input name="password2" required type={showPw ? "text" : "password"} minLength={8} dir="ltr" className="input text-start" autoComplete="new-password" /></Field>
               {err && <Alert>{err}</Alert>}
               <button disabled={busy} className="btn btn-primary w-full">{busy ? t("Veuillez patienter…") : t("Enregistrer le nouveau mot de passe")}</button>
             </form>

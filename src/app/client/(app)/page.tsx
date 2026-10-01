@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSession } from "@/components/Session";
 import { Empty, Spinner } from "@/components/ui";
 import { Countdown } from "@/components/Countdown";
-import { ORDER_STATUS, da } from "@/lib/format";
+import { ORDER_STATUS, da, departDate } from "@/lib/format";
 import type { Order } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 
@@ -74,7 +74,7 @@ export default function ClientHome() {
                   {o.status === "open" && <span className="badge bg-violet-100 text-violet-700">{t(ob.length > 1 ? "{n} offres" : "{n} offre", { n: ob.length })}{best ? ` · ${t("dès {p}", { p: da(best) })}` : ""}</span>}
                 </div>
                 <div className="mt-2 text-xs font-bold">
-                  {o.status === "open" && o.phase === "bidding" && <span className="text-amber-800">⏱ {t("Fin des enchères dans")} <Countdown to={o.auction_ends_at} className="text-brand-pink" /></span>}
+                  {o.status === "open" && o.phase === "bidding" && <span className="text-emerald-800">🔓 {t("Enchère ouverte")}{o.depart_date ? <> · {t("Départ dans")} <Countdown to={departDate(o.depart_date, o.depart_time ?? "00:00")} className="text-brand-pink" /></> : null}</span>}
                   {o.status === "open" && o.phase === "awaiting_client" && <span className="text-brand-pink">🏆 {t("Offre gagnante à confirmer")}</span>}
                 </div>
               </Link>

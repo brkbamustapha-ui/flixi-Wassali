@@ -71,7 +71,7 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
       }
       const first = String(f.get("first_name")).trim(), last = String(f.get("last_name")).trim(), phone = String(f.get("phone")).trim();
       if (!validPhoneDZ(phone)) throw new Error(t("Numéro de téléphone algérien invalide (ex : 0555 12 34 56)."));
-      if (password.length < 6) throw new Error(t("Le mot de passe doit contenir au moins 6 caractères."));
+      if (password.length < 8) throw new Error(t("Le mot de passe doit contenir au moins 8 caractères."));
       if (!f.get("terms")) throw new Error(t("Vous devez accepter les conditions d'utilisation."));
       const { data, error } = await sb.auth.signUp({
         email, password,
@@ -129,7 +129,7 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
               <Field label={t("Email")}><input name="email" required type="email" dir="ltr" className="input text-start" autoComplete="email" /></Field>
               <Field label={t("Mot de passe")}>
                 <div className="relative">
-                  <input name="password" required type={showPw ? "text" : "password"} minLength={6} dir="ltr" className="input text-start !pe-12" autoComplete={mode === "login" ? "current-password" : "new-password"} />
+                  <input name="password" required type={showPw ? "text" : "password"} minLength={8} dir="ltr" className="input text-start !pe-12" autoComplete={mode === "login" ? "current-password" : "new-password"} />
                   <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={t("Afficher le mot de passe")} className="absolute inset-y-0 end-3 text-lg">{showPw ? "🙈" : "👁"}</button>
                 </div>
               </Field>

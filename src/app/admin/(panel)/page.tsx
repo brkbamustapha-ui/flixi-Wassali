@@ -21,6 +21,8 @@ export default async function Overview() {
         <Stat label="Volume d'affaires" value={da(o.volume)} />
         <Stat label="Commissions à encaisser" value={da(o.commissions_unpaid)} tone="text-rose-600" />
         <Stat label="Commissions encaissées" value={da(o.commissions_paid)} tone="text-emerald-600" />
+        <Stat label="Clients en ligne" value={o.online_clients ?? 0} tone="text-emerald-600" />
+        <Stat label="Transporteurs en ligne" value={o.online_drivers ?? 0} tone="text-emerald-600" />
       </div>
     </div>
   );

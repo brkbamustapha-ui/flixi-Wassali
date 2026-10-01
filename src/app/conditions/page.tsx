@@ -27,7 +27,8 @@ export default function Conditions() {
             </ul></section>
           <section><h2 className="text-lg font-extrabold">{t("5. Obligations du client")}</h2><p>{t("Décrire fidèlement la marchandise (nature, poids, adresses), ne pas expédier de produits illicites ou dangereux non déclarés, et régler le montant convenu à la livraison.")}</p></section>
           <section><h2 className="text-lg font-extrabold">{t("6. Données personnelles")}</h2><p>{t("Les informations et documents fournis sont stockés de manière sécurisée, utilisés uniquement pour la vérification des comptes et la bonne exécution des livraisons. Les numéros de téléphone des deux parties ne sont affichés qu'une fois la commande conclue.")}</p></section>
-          <section><h2 className="text-lg font-extrabold">{t("7. Suspension")}</h2><p>{t("Flixi Tawsil peut suspendre ou refuser tout compte ne respectant pas ces conditions.")}</p></section>
+          <section><h2 className="text-lg font-extrabold">{t("7. Sécurité et adresse IP")}</h2><p>{t("Pour la sécurité des comptes et la prévention de la fraude, l'adresse IP et le type d'appareil utilisés lors des connexions sont enregistrés et consultables uniquement par l'équipe Flixi Tawsil.")}</p></section>
+          <section><h2 className="text-lg font-extrabold">{t("8. Suspension")}</h2><p>{t("Flixi Tawsil peut suspendre ou refuser tout compte ne respectant pas ces conditions.")}</p></section>
         </article>
       </div>
     </div>

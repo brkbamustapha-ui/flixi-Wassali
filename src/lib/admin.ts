@@ -1,6 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual, createHash } from "crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
 const COOKIE = "flixi_admin";
@@ -37,6 +37,21 @@ export async function isAdmin() {
 /** Appel d'une fonction d'administration Postgres, protégée par le secret serveur. */
 export async function adminRpc<T = unknown>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
   if (!(await isAdmin())) throw new Error("unauthorized");
+  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
+  const { data, error } = await sb.rpc(fn, { s: process.env.ADMIN_API_SECRET, ...args });
+  if (error) throw new Error(error.message);
+  return data as T;
+}
+
+/** Adresse IP du visiteur (Vercel renseigne x-forwarded-for / x-real-ip avec l'IP réelle). */
+export async function clientIp(): Promise<string> {
+  const h = await headers();
+  const xff = h.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return (h.get("x-real-ip") || xff || "inconnue").slice(0, 64);
+}
+
+/** Appel d'une fonction protégée par le secret serveur, sans exiger de session admin (connexion, suivi IP). */
+export async function secretRpc<T = unknown>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
   const { data, error } = await sb.rpc(fn, { s: process.env.ADMIN_API_SECRET, ...args });
   if (error) throw new Error(error.message);

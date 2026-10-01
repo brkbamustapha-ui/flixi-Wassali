@@ -3,9 +3,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "@/components/Session";
 import { Empty, Spinner, Alert } from "@/components/ui";
-import { Countdown } from "@/components/Countdown";
+import { AuctionBanner } from "@/components/Countdown";
 import TripBidModal, { PublicTrip } from "@/components/TripBidModal";
-import { da } from "@/lib/format";
+import { da, departDate } from "@/lib/format";
 import { WILAYAS } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
@@ -13,6 +13,23 @@ type MyBid = {
   id: string; price: number; status: string; goods_type: string; trip_id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string;
   phase: string; trip_status: string; auction_ends_at: string | null; order_id: string | null; driver_first_name: string; best: number | null;
 };
+
+function OfferList({ offers, empty, title }: { offers: { price: number; name: string; mine: boolean; won: boolean }[]; empty: string; title: string }) {
+  if (!offers?.length) return <p className="text-xs font-semibold text-slate-500">{empty}</p>;
+  return (
+    <div>
+      <p className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">{title}</p>
+      <ul className="max-h-40 space-y-1 overflow-y-auto pe-1">
+        {offers.map((o, i) => (
+          <li key={i} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm ${o.mine ? "bg-pink-50 font-extrabold ring-1 ring-brand-pink" : "bg-violet-50/60 font-semibold"}`}>
+            <span>{i === 0 ? "🥇 " : `${i + 1}. `}{o.name}{o.mine ? " ⭐" : ""}{o.won ? " 🏆" : ""}</span>
+            <b dir="ltr">{da(o.price)}</b>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function ClientTrips() {
   const { sb } = useSession();
@@ -99,16 +116,11 @@ export default function ClientTrips() {
                 <p className="mt-1 text-sm text-slate-600">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })} · {t(x.vehicle_type)}</p>
                 {x.note && <p className="mt-2 text-sm text-slate-500">{x.note}</p>}
 
-                <div className="mt-3 space-y-1 rounded-xl bg-gradient-to-r from-amber-50 to-pink-50 p-3 text-sm">
-                  {biddingOpen ? (
-                    <p className="font-bold">⏱ {t("Fin des enchères dans")} <Countdown to={x.auction_ends_at} className="text-brand-pink" />{x.round > 1 ? ` · ${t("Tour {n}", { n: x.round })}` : ""}</p>
-                  ) : (
-                    <p className="font-bold text-amber-800">🏆 {t("Enchère terminée — le transporteur confirme le gagnant")}</p>
-                  )}
-                  <p className="text-xs font-semibold text-slate-600">
-                    {x.best ? t("Meilleure offre : {p} ({n})", { p: da(x.best), n: t(x.bids > 1 ? "{n} offres" : "{n} offre", { n: x.bids }) }) : t("Aucune offre pour l'instant")}
-                    {x.price ? ` · ${t("Prix annoncé : {p}", { p: da(x.price) })}` : ""}
-                  </p>
+                <div className="mt-3 space-y-2">
+                  {biddingOpen ? <AuctionBanner depart={departDate(x.depart_date, x.depart_time)} round={x.round} who="driver" />
+                    : <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">🏆 {t("Enchère terminée — le transporteur confirme le gagnant")}</p>}
+                  {x.price ? <p className="text-xs font-semibold text-slate-600">{t("Prix annoncé : {p}", { p: da(x.price) })}</p> : null}
+                  <OfferList offers={x.offers} empty={t("Aucune offre pour l'instant")} title={t("Toutes les offres ({n})", { n: x.bids })} />
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2">

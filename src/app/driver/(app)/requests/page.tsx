@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "@/components/Session";
 import { Alert, Empty, Spinner } from "@/components/ui";
-import { AuctionBanner, Countdown } from "@/components/Countdown";
-import { MIN_PRICE, COMMISSION, da } from "@/lib/format";
+import { AuctionBanner } from "@/components/Countdown";
+import { MIN_PRICE, COMMISSION, da, departDate } from "@/lib/format";
 import { WILAYAS } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 import type { Order } from "@/lib/supabase";
@@ -12,7 +12,26 @@ import type { PublicTrip } from "@/components/TripBidModal";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-2xl bg-violet-100" /> });
 type Bid = { id: string; order_id: string; price: number; status: string };
-type Stat = { order_id: string; best: number | null; count: number; phase: string; auction_ends_at: string | null; round: number };
+type Offer = { price: number; name: string; mine: boolean; won: boolean };
+type Stat = { order_id: string; best: number | null; count: number; phase: string; offers: Offer[] };
+
+function OfferList({ offers, empty, title }: { offers: Offer[]; empty: string; title: string }) {
+  const { t } = useI18n();
+  if (!offers?.length) return <p className="text-xs font-semibold text-slate-500">{empty}</p>;
+  return (
+    <div>
+      <p className="mb-1 text-xs font-extrabold uppercase tracking-wide text-slate-500">{title}</p>
+      <ul className="max-h-40 space-y-1 overflow-y-auto pe-1">
+        {offers.map((o, i) => (
+          <li key={i} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm ${o.mine ? "bg-pink-50 font-extrabold ring-1 ring-brand-pink" : "bg-violet-50/60 font-semibold"}`}>
+            <span>{i === 0 ? "🥇 " : `${i + 1}. `}{o.name}{o.mine ? ` (${t("vous")})` : ""}{o.won ? " 🏆" : ""}</span>
+            <b dir="ltr">{da(o.price)}</b>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function Requests() {
   const { sb, profile, driver } = useSession();
@@ -110,10 +129,10 @@ export default function Requests() {
                     <p className="mt-3 text-lg font-extrabold">{w(o.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(o.to_wilaya)}</p>
                     {o.description && <p className="mt-1 text-sm text-slate-600">{o.description}</p>}
 
-                    <div className="mt-3 space-y-1">
-                      {bidding ? <AuctionBanner endsAt={st?.auction_ends_at ?? o.auction_ends_at ?? null} round={st?.round ?? o.auction_round} />
+                    <div className="mt-3 space-y-2">
+                      {bidding ? <AuctionBanner depart={o.depart_date ? departDate(o.depart_date, o.depart_time ?? "00:00") : null} round={o.auction_round} who="client" />
                         : <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">🏆 {t("Enchère terminée — le client confirme le gagnant")}</p>}
-                      <p className="text-xs font-semibold text-slate-600">{st?.best ? t("Meilleure offre : {p} ({n})", { p: da(st.best), n: t(st.count > 1 ? "{n} offres" : "{n} offre", { n: st.count }) }) : t("Aucune offre pour l'instant")}</p>
+                      <OfferList offers={st?.offers ?? []} empty={t("Aucune offre pour l'instant")} title={t("Toutes les offres ({n})", { n: st?.count ?? 0 })} />
                     </div>
                     <p className="mt-2 text-xs text-slate-500">{t("Vous encaisserez le prix + {c} (commission à reverser à Flixi).", { c: da(COMMISSION) })}</p>
 
@@ -157,10 +176,12 @@ export default function Requests() {
                 <div className="flex items-center justify-between"><span className="badge bg-violet-100 text-violet-700">🚚 {x.driver_first_name}{x.is_mine ? ` (${t("Votre trajet")})` : ""}</span><span className="text-xs font-bold text-slate-500">{t(x.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: x.deliveries })}</span></div>
                 <p className="mt-3 text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)}</p>
                 <p className="mt-1 text-sm text-slate-600">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })} · {t(x.vehicle_type)}</p>
-                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900">
-                  {x.phase === "bidding" ? <>⏱ {t("Fin des enchères dans")} <Countdown to={x.auction_ends_at} className="text-brand-pink" /></> : `🏆 ${t("Enchère terminée — le transporteur confirme le gagnant")}`}
-                </p>
-                <p className="mt-2 text-xs font-semibold text-slate-600">{x.best ? t("Meilleure offre : {p} ({n})", { p: da(x.best), n: t(x.bids > 1 ? "{n} offres" : "{n} offre", { n: x.bids }) }) : t("Aucune offre pour l'instant")}{x.price ? ` · ${t("Prix annoncé : {p}", { p: da(x.price) })}` : ""}</p>
+                <div className="mt-3 space-y-2">
+                  {x.phase === "bidding" ? <AuctionBanner depart={departDate(x.depart_date, x.depart_time)} round={x.round} who="driver" />
+                    : <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">🏆 {t("Enchère terminée — le transporteur confirme le gagnant")}</p>}
+                  {x.price ? <p className="text-xs font-semibold text-slate-600">{t("Prix annoncé : {p}", { p: da(x.price) })}</p> : null}
+                  <OfferList offers={x.offers} empty={t("Aucune offre pour l'instant")} title={t("Toutes les offres ({n})", { n: x.bids })} />
+                </div>
               </div>
             ))}
           </div>
