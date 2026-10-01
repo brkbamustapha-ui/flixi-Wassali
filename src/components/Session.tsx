@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { supabase, Profile, DriverFile } from "@/lib/supabase";
+import { supabase, ensureSession, LAST_ROLE_KEY, Profile, DriverFile } from "@/lib/supabase";
 import { Logo } from "./Logo";
 import { Spinner } from "./ui";
 import { useI18n } from "@/lib/i18n";
@@ -22,19 +22,32 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
   const { t } = useI18n();
   const [state, setState] = useState<{ profile: Profile; driver: DriverFile | null } | null>(null);
 
+  const [failed, setFailed] = useState(false);
+
   const load = useCallback(async () => {
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return router.replace(`/${role}/login`);
-    const { data: profile } = await sb.from("flixi_profiles").select("*").eq("id", user.id).maybeSingle();
+    setFailed(false);
+    // Session lue en local : on ne déconnecte jamais sur une simple erreur réseau.
+    const session = await ensureSession();
+    if (!session) return router.replace(`/${role}/login`);
+    let res = await sb.from("flixi_profiles").select("*").eq("id", session.user.id).maybeSingle();
+    if (res.error && (res.error.code === "PGRST301" || /jwt/i.test(res.error.message))) {
+      const r = await sb.auth.refreshSession();
+      if (r.error && /invalid|expired|not found|already used/i.test(r.error.message)) return router.replace(`/${role}/login`);
+      res = await sb.from("flixi_profiles").select("*").eq("id", session.user.id).maybeSingle();
+    }
+    if (res.error) return setFailed(true); // réseau instable : on propose de réessayer
+    const profile = res.data;
     if (!profile) {
       localStorage.setItem("flixi_role", role);
       return router.replace("/onboarding");
     }
     if (profile.role !== role) return router.replace(`/${profile.role}`);
+    try { localStorage.setItem(LAST_ROLE_KEY, profile.role); } catch {}
     let driver: DriverFile | null = null;
     if (role === "driver") {
-      const { data } = await sb.from("flixi_drivers").select("*").eq("user_id", user.id).maybeSingle();
-      driver = data;
+      const d = await sb.from("flixi_drivers").select("*").eq("user_id", session.user.id).maybeSingle();
+      if (d.error) return setFailed(true);
+      driver = d.data;
       if (!driver && path !== "/driver/apply") return router.replace("/driver/apply");
     }
     setState({ profile, driver });
@@ -42,6 +55,16 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
 
   useEffect(() => { load(); }, [load]);
 
+  if (failed && !state) {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-sm flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="text-5xl">📡</div>
+        <p className="font-extrabold">{t("Connexion au serveur impossible pour le moment.")}</p>
+        <p className="text-sm text-slate-500">{t("Vous restez connecté. Vérifiez votre connexion internet puis réessayez.")}</p>
+        <button onClick={load} className="btn btn-primary w-full">{t("Réessayer")}</button>
+      </div>
+    );
+  }
   if (!state) return <Spinner />;
   const { profile, driver } = state;
 

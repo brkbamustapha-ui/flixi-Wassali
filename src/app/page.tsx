@@ -4,15 +4,19 @@ import { Logo } from "@/components/Logo";
 import LangSwitch from "@/components/LangSwitch";
 import { COMMISSION, MIN_PRICE, da } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { useAutoEnter } from "@/lib/useAutoEnter";
+import { Spinner } from "@/components/ui";
 
 export default function Home() {
   const { t } = useI18n();
+  const checking = useAutoEnter();
   const steps = [
     { n: "1", t: t("Publiez"), d: t("Type de marchandise, wilaya de départ et d'arrivée, votre prix (minimum 1 000 DA).") },
     { n: "2", t: t("Comparez"), d: t("Les transporteurs vérifiés envoient leurs prix. Le meilleur prix gagne.") },
     { n: "3", t: t("Confirmez"), d: t("Client et transporteur acceptent : les numéros de téléphone s'affichent.") },
     { n: "4", t: t("Suivez"), d: t("Suivez votre marchandise en direct sur la carte jusqu'à la livraison.") },
   ];
+  if (checking) return <div className="grad-soft min-h-screen pt-40"><Spinner /></div>;
   return (
     <div className="grad-soft min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-5">

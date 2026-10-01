@@ -466,4 +466,7 @@ export const DICT: Record<string, [string, string, string]> = {
   "départ trop proche": ["departure too soon", "الانطلاق قريب جدًا", "الخروج قريب بزاف"],
   "date de départ requise": ["departure date required", "تاريخ الانطلاق مطلوب", "لازم نهار الخروج"],
   "prix annoncé requis": ["announced price required", "السعر المعلن مطلوب", "لازم الثمن المكتوب"],
+  "Connexion au serveur impossible pour le moment.": ["Can't reach the server right now.", "تعذّر الاتصال بالخادم حاليًا.", "ما قدرناش نوصلو للسيرفر دروك."],
+  "Vous restez connecté. Vérifiez votre connexion internet puis réessayez.": ["You stay signed in. Check your internet connection and try again.", "ما زلت متصلًا. تحقّق من اتصالك بالإنترنت ثم أعد المحاولة.", "راك باقي مكونيكتي. شوف الانترنت تاعك وعاود جرّب."],
+  "Réessayer": ["Try again", "إعادة المحاولة", "عاود جرّب"],
 };

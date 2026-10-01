@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { validPhoneDZ } from "@/lib/format";
-import { Alert, Field } from "./ui";
+import { Alert, Field, Spinner } from "./ui";
+import { useAutoEnter } from "@/lib/useAutoEnter";
 import { Logo } from "./Logo";
 import { useI18n } from "@/lib/i18n";
 import LangSwitch from "./LangSwitch";
@@ -28,6 +29,7 @@ export function GoogleButton({ role }: { role: "client" | "driver" }) {
 export default function AuthForm({ role }: { role: "client" | "driver" }) {
   const router = useRouter();
   const { t } = useI18n();
+  const checking = useAutoEnter();
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -91,6 +93,7 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
     }
   }
 
+  if (checking) return <div className="grad-soft min-h-screen pt-40"><Spinner /></div>;
   return (
     <div className="grad-soft flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
