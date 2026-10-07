@@ -5,10 +5,11 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase, ensureSession, LAST_ROLE_KEY, Profile, DriverFile } from "@/lib/supabase";
 import { Logo } from "./Logo";
-import { Spinner } from "./ui";
+import { Alert, Spinner } from "./ui";
 import { useI18n } from "@/lib/i18n";
 import LangSwitch from "./LangSwitch";
 import EventsHost from "./EventsHost";
+import BirthDateField, { isAdult, readBirth } from "./BirthDateField";
 
 type Ctx = { sb: SupabaseClient; profile: Profile; driver: DriverFile | null; refresh: () => Promise<void> };
 const SessionCtx = createContext<Ctx | null>(null);
@@ -74,6 +75,9 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
     router.replace("/");
   }
 
+  // Anciens comptes : la date de naissance est obligatoire (19 ans minimum).
+  if (!profile.birth_date) return <BirthGate onSaved={load} onLogout={logout} />;
+
   return (
     <SessionCtx.Provider value={{ sb, profile, driver, refresh: load }}>
       <div className="min-h-screen pb-24 md:pb-10">
@@ -115,5 +119,51 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
         </nav>
       </div>
     </SessionCtx.Provider>
+  );
+}
+
+/** Écran bloquant pour les comptes créés avant l'ajout de la date de naissance. */
+function BirthGate({ onSaved, onLogout }: { onSaved: () => Promise<void>; onLogout: () => Promise<void> }) {
+  const { t } = useI18n();
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [denied, setDenied] = useState(false);
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const birth = readBirth(new FormData(e.currentTarget));
+    if (!birth) return setErr(t("Date de naissance invalide."));
+    setBusy(true); setErr("");
+    if (!isAdult(birth)) {
+      await supabase().rpc("flixi_set_birth", { p_birth: birth });
+      setBusy(false);
+      return setDenied(true);
+    }
+    const { error } = await supabase().rpc("flixi_set_birth", { p_birth: birth });
+    if (error) { setBusy(false); return setErr(error.message); }
+    await onSaved();
+  }
+
+  return (
+    <div className="grad-soft flex min-h-screen items-center justify-center px-4 py-10">
+      <form onSubmit={submit} className="card w-full max-w-md space-y-4 p-6 sm:p-8">
+        <div className="flex justify-center"><Logo size={42} /></div>
+        {denied ? (
+          <>
+            <Alert>{t("Vous devez avoir au moins 19 ans pour utiliser Flixi Tawsil. Votre accès est refusé.")}</Alert>
+            <button type="button" onClick={onLogout} className="btn btn-ghost w-full">{t("Quitter")}</button>
+          </>
+        ) : (
+          <>
+            <h1 className="text-center text-xl font-extrabold">{t("Une dernière information")}</h1>
+            <p className="text-center text-sm text-slate-600">{t("Pour continuer, indiquez votre date de naissance. Flixi Tawsil est réservé aux personnes de 19 ans et plus.")}</p>
+            <BirthDateField />
+            {err && <Alert>{err}</Alert>}
+            <button disabled={busy} className="btn btn-primary w-full">{busy ? "…" : t("Continuer")}</button>
+            <button type="button" onClick={onLogout} className="w-full text-center text-sm font-bold text-slate-500">{t("Quitter")}</button>
+          </>
+        )}
+      </form>
+    </div>
   );
 }

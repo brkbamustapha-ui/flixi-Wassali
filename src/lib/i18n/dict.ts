@@ -579,4 +579,8 @@ export const DICT: Record<string, [string, string, string]> = {
   "Décembre": ["December", "ديسمبر", "ديسمبر"],
   "Date de naissance invalide.": ["Invalid date of birth.", "تاريخ الميلاد غير صالح.", "تاريخ الميلاد ماشي صحيح."],
   "Vous devez avoir au moins 19 ans pour créer un compte.": ["You must be at least 19 years old to create an account.", "يجب أن يكون عمرك 19 سنة على الأقل لإنشاء حساب.", "لازم يكون عمرك 19 عام على الأقل باش تدير حساب."],
+  // — Date de naissance (anciens comptes) —
+  "Vous devez avoir au moins 19 ans pour utiliser Flixi Tawsil. Votre accès est refusé.": ["You must be at least 19 years old to use Flixi Tawsil. Your access is denied.", "يجب أن يكون عمرك 19 سنة على الأقل لاستخدام Flixi Tawsil. تم رفض دخولك.", "لازم يكون عمرك 19 عام على الأقل باش تستعمل Flixi Tawsil. الدخول تاعك مرفوض."],
+  "Une dernière information": ["One last piece of information", "معلومة أخيرة", "معلومة أخيرة"],
+  "Pour continuer, indiquez votre date de naissance. Flixi Tawsil est réservé aux personnes de 19 ans et plus.": ["To continue, enter your date of birth. Flixi Tawsil is reserved for people aged 19 and over.", "للمتابعة، أدخل تاريخ ميلادك. Flixi Tawsil مخصّص للأشخاص البالغين 19 سنة فما فوق.", "باش تكمّل، دخّل تاريخ الميلاد تاعك. Flixi Tawsil للناس لي عمرهم 19 عام ولا أكثر."],
 };

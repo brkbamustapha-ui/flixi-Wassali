@@ -47,7 +47,7 @@ export async function ensureSession(): Promise<Session | null> {
 
 export type Profile = {
   id: string; role: "client" | "driver"; first_name: string; last_name: string; phone: string;
-  email: string | null; status: "active" | "suspended"; created_at: string;
+  email: string | null; status: "active" | "suspended"; created_at: string; birth_date: string | null;
 };
 export type DriverFile = {
   user_id: string; wilaya: string | null; vehicle_type: string; plate_number: string; license_kind: string;
