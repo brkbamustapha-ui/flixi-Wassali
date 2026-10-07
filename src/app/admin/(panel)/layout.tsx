@@ -4,7 +4,7 @@ import { endSession, isAdmin } from "@/lib/admin";
 import { Logo } from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Administration — Flixi Tawsil", robots: { index: false } };
+export const metadata = { title: "Administration — Flixi Wassali", robots: { index: false } };
 
 async function logout() {
   "use server";

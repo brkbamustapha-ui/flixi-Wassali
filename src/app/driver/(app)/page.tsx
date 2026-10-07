@@ -49,7 +49,7 @@ export default function DriverHome() {
 
   return (
     <div className="space-y-6">
-      {driver.approval === "pending" && <Alert kind="info">⏳ {t("Votre dossier est en cours de vérification par l'équipe Flixi Tawsil. Vous pourrez proposer des prix dès son approbation.")}</Alert>}
+      {driver.approval === "pending" && <Alert kind="info">⏳ {t("Votre dossier est en cours de vérification par l'équipe Flixi Wassali. Vous pourrez proposer des prix dès son approbation.")}</Alert>}
       {driver.approval === "rejected" && <Alert>{t("Votre dossier a été refusé")}{driver.admin_note ? ` : ${driver.admin_note}` : "."} {t("Contactez le support.")}</Alert>}
       {driver.approval === "approved" && (
         <div className="rounded-3xl bg-gradient-to-r from-violet-700 to-fuchsia-500 p-6 text-white shadow-lg sm:p-8">

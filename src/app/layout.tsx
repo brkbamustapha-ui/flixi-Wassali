@@ -11,7 +11,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakart
 const cairo = Cairo({ subsets: ["arabic", "latin"], variable: "--font-cairo", weight: ["400", "500", "600", "700", "800"] });
 
 export const metadata: Metadata = {
-  title: "Flixi Tawsil — فليكسي توصيل",
+  title: "Flixi Wassali — فليكسي وصّالي",
   description: "Transport de marchandises partout en Algérie · نقل السلع في كامل الجزائر",
 };
 export const viewport: Viewport = { themeColor: "#ff2e7e", width: "device-width", initialScale: 1 };

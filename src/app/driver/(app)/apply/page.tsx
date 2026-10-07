@@ -118,7 +118,7 @@ export default function Apply() {
         {[
           ["loc", "Je m'engage à laisser ma localisation activée pendant toute livraison, afin que la marchandise soit suivie."],
           ["resp", "J'assume l'entière responsabilité de toute la marchandise que je transporte (perte, dommage, retard)."],
-          ["terms", "J'ai lu et j'accepte les conditions d'utilisation de Flixi Tawsil, dont la commission de 8 à 12 % par course payée chaque samedi."],
+          ["terms", "J'ai lu et j'accepte les conditions d'utilisation de Flixi Wassali, dont la commission de 8 à 12 % par course payée chaque samedi."],
         ].map(([n, txt]) => (
           <label key={n} className="flex items-start gap-2 text-sm"><input name={n} type="checkbox" className="mt-1 h-4 w-4 accent-pink-600" /><span>{t(txt)}</span></label>
         ))}

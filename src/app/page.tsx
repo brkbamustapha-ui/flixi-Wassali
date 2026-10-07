@@ -76,7 +76,7 @@ export default function Home() {
 
       <footer className="border-t border-violet-100 py-8 text-center text-sm text-slate-500">
         <div className="flex justify-center"><Logo size={30} /></div>
-        <p className="mt-3">© {new Date().getFullYear()} Flixi Tawsil · <Link href="/conditions" className="font-bold text-brand-pink">{t("Conditions d'utilisation")}</Link></p>
+        <p className="mt-3">© {new Date().getFullYear()} Flixi Wassali · <Link href="/conditions" className="font-bold text-brand-pink">{t("Conditions d'utilisation")}</Link></p>
       </footer>
     </div>
   );

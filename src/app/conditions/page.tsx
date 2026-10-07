@@ -22,7 +22,7 @@ export default function Conditions() {
           </header>
 
           <section><h2 className={H}>{t("Article 1 : Objet et préambule")}</h2>
-            <p>{t("Les présentes Conditions Générales d'Utilisation (« CGU ») régissent l'utilisation de l'application et des services web Flixi Tawsil (« la Plateforme »), éditée par Flixi Tawsil (« l'Éditeur »).")}</p>
+            <p>{t("Les présentes Conditions Générales d'Utilisation (« CGU ») régissent l'utilisation de l'application et des services web Flixi Wassali (« la Plateforme »), éditée par Flixi Wassali (« l'Éditeur »).")}</p>
             <p className="mt-2">{t("La Plateforme est un service technologique assurant la mise en relation à distance entre des utilisateurs souhaitant bénéficier d'un service de transport de marchandises (« les Clients ») et des prestataires de transport indépendants (« les Transporteurs »).")}</p></section>
 
           <section><h2 className={H}>{t("Article 2 : Rôle de la Plateforme (intermédiation)")}</h2>
@@ -80,7 +80,7 @@ export default function Conditions() {
 
           <section><h2 className={H}>{t("Article 8 : Protection des données personnelles")}</h2>
             <p>{t("L'Éditeur collecte et traite les données personnelles des Utilisateurs (nom, téléphone, données de géolocalisation, etc.) dans le strict respect de la réglementation algérienne relative à la protection des personnes physiques dans le traitement des données à caractère personnel (Loi n° 18-07). Ces données sont utilisées exclusivement pour le bon fonctionnement du service de mise en relation.")}</p>
-            <p className="mt-2">{t("Les numéros de téléphone des deux parties ne sont affichés qu'une fois la commande conclue. Pour la sécurité des comptes et la prévention de la fraude, l'adresse IP et le type d'appareil utilisés lors des connexions sont enregistrés et consultables uniquement par l'équipe Flixi Tawsil.")}</p></section>
+            <p className="mt-2">{t("Les numéros de téléphone des deux parties ne sont affichés qu'une fois la commande conclue. Pour la sécurité des comptes et la prévention de la fraude, l'adresse IP et le type d'appareil utilisés lors des connexions sont enregistrés et consultables uniquement par l'équipe Flixi Wassali.")}</p></section>
 
           <section><h2 className={H}>{t("Article 9 : Propriété intellectuelle")}</h2>
             <p>{t("L'ensemble des éléments constitutifs de l'application (marques, logos, codes sources, interfaces, graphismes) sont la propriété exclusive de l'Éditeur. Toute reproduction, copie ou exploitation non autorisée est strictement interdite.")}</p></section>

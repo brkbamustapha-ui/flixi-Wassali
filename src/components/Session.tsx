@@ -103,7 +103,7 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
           </div>
         </header>
         {profile.status === "suspended" && (
-          <div className="bg-rose-600 px-4 py-2 text-center text-sm font-bold text-white">{t("Votre compte est suspendu. Contactez le support Flixi Tawsil.")}</div>
+          <div className="bg-rose-600 px-4 py-2 text-center text-sm font-bold text-white">{t("Votre compte est suspendu. Contactez le support Flixi Wassali.")}</div>
         )}
         <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
         <EventsHost sb={sb} role={role} />
@@ -150,13 +150,13 @@ function BirthGate({ onSaved, onLogout }: { onSaved: () => Promise<void>; onLogo
         <div className="flex justify-center"><Logo size={42} /></div>
         {denied ? (
           <>
-            <Alert>{t("Vous devez avoir au moins 19 ans pour utiliser Flixi Tawsil. Votre accès est refusé.")}</Alert>
+            <Alert>{t("Vous devez avoir au moins 19 ans pour utiliser Flixi Wassali. Votre accès est refusé.")}</Alert>
             <button type="button" onClick={onLogout} className="btn btn-ghost w-full">{t("Quitter")}</button>
           </>
         ) : (
           <>
             <h1 className="text-center text-xl font-extrabold">{t("Une dernière information")}</h1>
-            <p className="text-center text-sm text-slate-600">{t("Pour continuer, indiquez votre date de naissance. Flixi Tawsil est réservé aux personnes de 19 ans et plus.")}</p>
+            <p className="text-center text-sm text-slate-600">{t("Pour continuer, indiquez votre date de naissance. Flixi Wassali est réservé aux personnes de 19 ans et plus.")}</p>
             <BirthDateField />
             {err && <Alert>{err}</Alert>}
             <button disabled={busy} className="btn btn-primary w-full">{busy ? "…" : t("Continuer")}</button>

@@ -29,7 +29,7 @@ export default function Commissions() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-extrabold">{t("Commissions Flixi Tawsil")}</h1>
+      <h1 className="text-2xl font-extrabold">{t("Commissions Flixi Wassali")}</h1>
       <div className="grad-bg rounded-3xl p-6 text-white shadow-lg">
         <p className="text-sm font-bold opacity-90">{t("Total à verser")}</p>
         <p className="mt-1 text-4xl font-extrabold">{da(total)}</p>

@@ -6,7 +6,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 /** Chaque élément grandit depuis son propre centre. */
 const FROM_CENTER = { transformBox: "fill-box", transformOrigin: "center" } as const;
 const FLIXI = [["F", "#FF8A1F"], ["l", "#FF6A3A"], ["i", "#FF4A5C"], ["x", "#FF2E7E"], ["i", "#D63AA6"]] as const;
-const TAWSIL = "Tawsil".split("");
+const WASSALI = "Wassali".split("");
 
 /**
  * Logo animé : le badge apparaît, l'anneau se trace, le « F » se construit barre par barre, la flèche se dessine,
@@ -21,7 +21,7 @@ export function LogoIntro({ delay = 0, onDone }: { delay?: number; onDone?: () =
   return (
     <div className="flex flex-col items-center">
       <div className="relative w-[min(46vw,190px)]">
-        <svg viewBox="0 0 100 100" className="block w-full overflow-visible" role="img" aria-label="Flixi Tawsil">
+        <svg viewBox="0 0 100 100" className="block w-full overflow-visible" role="img" aria-label="Flixi Wassali">
           <defs>
             <linearGradient id={`g-${id}`} x1="8" y1="6" x2="94" y2="96" gradientUnits="userSpaceOnUse">
               <stop offset="0" stopColor="#FF8A1F" /><stop offset=".5" stopColor="#FF2E7E" /><stop offset="1" stopColor="#7B3FF2" />
@@ -87,13 +87,13 @@ export function LogoIntro({ delay = 0, onDone }: { delay?: number; onDone?: () =
       </div>
 
       {/* nom : les lettres s'inscrivent */}
-      <h1 dir="ltr" className="mt-8 flex items-baseline text-[clamp(2.4rem,8vw,3.6rem)] font-extrabold leading-none tracking-[-0.03em]" aria-label="Flixi Tawsil">
+      <h1 dir="ltr" className="mt-8 flex items-baseline text-[clamp(2.4rem,8vw,3.6rem)] font-extrabold leading-none tracking-[-0.03em]" aria-label="Flixi Wassali">
         {FLIXI.map(([c, col], i) => (
           <motion.span key={`a${i}`} style={{ color: col, display: "inline-block" }} initial={hidden({ opacity: 0, scale: 0.4, y: 14 })} animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.6, delay: at(1.25 + i * 0.05), ease: EASE }}>{c}</motion.span>
         ))}
         <span className="w-[0.28em]" />
-        {TAWSIL.map((c, i) => (
+        {WASSALI.map((c, i) => (
           <motion.span key={`b${i}`} className="inline-block text-white" initial={hidden({ opacity: 0, scale: 0.4, y: 14 })} animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.6, delay: at(1.5 + i * 0.05), ease: EASE }}>{c}</motion.span>
         ))}
@@ -103,7 +103,7 @@ export function LogoIntro({ delay = 0, onDone }: { delay?: number; onDone?: () =
       <motion.div className="mt-4 flex items-center justify-center gap-4 text-[11px] font-bold uppercase tracking-[0.34em] text-white/75"
         initial={hidden({ opacity: 0, y: 8 })} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: at(1.9), ease: EASE }}>
         <motion.span className="block h-px w-12 origin-right bg-gradient-to-r from-transparent to-[#ff9a5a]" initial={hidden({ scaleX: 0 })} animate={{ scaleX: 1 }} transition={{ duration: 0.9, delay: at(2), ease: EASE }} />
-        <span dir="ltr">توصيل · Algérie</span>
+        <span dir="ltr">وصّالي · Algérie</span>
         <motion.span className="block h-px w-12 origin-left bg-gradient-to-l from-transparent to-[#ff9a5a]" initial={hidden({ scaleX: 0 })} animate={{ scaleX: 1 }} transition={{ duration: 0.9, delay: at(2), ease: EASE }} />
       </motion.div>
     </div>

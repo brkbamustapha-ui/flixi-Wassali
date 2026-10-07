@@ -113,7 +113,7 @@ export default function Requests() {
   return (
     <div className="space-y-5">
       <div><h1 className="text-2xl font-extrabold">{t("Demandes de transport")}</h1><p className="text-sm text-slate-500">{t("Enchérissez sur les demandes : le prix le plus bas gagne, puis le client confirme. Vous pouvez aussi accepter directement le prix du client.")}</p></div>
-      {!approved && <Alert kind="info">{t("Votre compte doit être approuvé par l'équipe Flixi Tawsil avant de pouvoir proposer un prix.")}</Alert>}
+      {!approved && <Alert kind="info">{t("Votre compte doit être approuvé par l'équipe Flixi Wassali avant de pouvoir proposer un prix.")}</Alert>}
       {online !== null && <p className="text-sm font-bold text-emerald-700">🟢 {t("{n} transporteurs en ligne en ce moment", { n: online })}</p>}
       {err && <Alert>{err}</Alert>}
 

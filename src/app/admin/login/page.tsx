@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { checkCredentials, clientIp, isAdmin, secretRpc, startSession } from "@/lib/admin";
 import { Logo } from "@/components/Logo";
 
-export const metadata = { title: "Administration — Flixi Tawsil", robots: { index: false } };
+export const metadata = { title: "Administration — Flixi Wassali", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 async function login(formData: FormData) {
