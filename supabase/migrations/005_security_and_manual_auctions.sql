@@ -49,3 +49,7 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- ===== Documents transporteur supplémentaires (appliqué via execute_sql) =====
 -- flixi_drivers: controle_technique_img, assurance_img, registre_nif_img, registre_nif_kind ('registre_commerce'|'nif'), registre_nif_number
 -- + contrainte flixi_drivers_docs_check, grant insert sur ces colonnes, flixi_admin_driver_files renvoie ces champs.
+
+-- ===== Date de naissance / 19 ans minimum (appliqué via execute_sql) =====
+-- flixi_profiles.birth_date ; flixi_age_ok(date) ; flixi_handle_new_user exige birth_date >= 19 ans (sinon exception) ;
+-- flixi_complete_profile(role, first, last, phone, birth) remplace l'ancienne signature (exécution révoquée).

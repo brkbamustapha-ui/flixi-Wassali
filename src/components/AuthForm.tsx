@@ -1,4 +1,5 @@
 "use client";
+import BirthDateField, { isAdult, readBirth } from "@/components/BirthDateField";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -71,13 +72,17 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
       }
       const first = String(f.get("first_name")).trim(), last = String(f.get("last_name")).trim(), phone = String(f.get("phone")).trim();
       if (!validPhoneDZ(phone)) throw new Error(t("Numéro de téléphone algérien invalide (ex : 0555 12 34 56)."));
+      const birth = readBirth(f);
+      if (!birth) throw new Error(t("Date de naissance invalide."));
+      if (!isAdult(birth)) throw new Error(t("Vous devez avoir au moins 19 ans pour créer un compte."));
       if (password.length < 8) throw new Error(t("Le mot de passe doit contenir au moins 8 caractères."));
       if (!f.get("terms")) throw new Error(t("Vous devez accepter les conditions d'utilisation."));
       const { data, error } = await sb.auth.signUp({
         email, password,
-        options: { data: { flixi_role: role, first_name: first, last_name: last, phone }, emailRedirectTo: `${location.origin}/auth/callback` },
+        options: { data: { flixi_role: role, first_name: first, last_name: last, phone, birth_date: birth }, emailRedirectTo: `${location.origin}/auth/callback` },
       });
       if (error) {
+        if (/19 ans/.test(error.message) || /Database error saving new user/i.test(error.message)) throw new Error(t("Vous devez avoir au moins 19 ans pour créer un compte."));
         if (error.status === 429 || error.code === "over_email_send_rate_limit") throw new Error(t("Trop d'inscriptions en peu de temps. Réessayez dans une heure ou contactez le support."));
         throw new Error(error.message.includes("registered") ? t("Cet email a déjà un compte. Connectez-vous.") : error.message);
       }
@@ -124,6 +129,7 @@ export default function AuthForm({ role }: { role: "client" | "driver" }) {
                     <Field label={t("Nom")}><input name="last_name" required className="input" autoComplete="family-name" /></Field>
                   </div>
                   <Field label={t("Numéro de téléphone")}><input name="phone" required type="tel" dir="ltr" placeholder="0555 12 34 56" className="input text-start" autoComplete="tel" /></Field>
+                  <BirthDateField />
                 </>
               )}
               <Field label={t("Email")}><input name="email" required type="email" dir="ltr" className="input text-start" autoComplete="email" /></Field>
