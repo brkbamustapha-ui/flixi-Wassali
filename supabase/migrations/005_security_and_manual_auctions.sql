@@ -45,3 +45,7 @@ alter table public.flixi_trips add constraint flixi_trips_text_check check (coal
 -- un transporteur ne peut que fermer son trajet, pas le rouvrir :
 alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid() and status = 'open') with check (driver_id = auth.uid() and status = 'closed');
 -- les triggers d'inscription tronquent noms/téléphone (60/60/20) pour respecter les contraintes.
+
+-- ===== Documents transporteur supplémentaires (appliqué via execute_sql) =====
+-- flixi_drivers: controle_technique_img, assurance_img, registre_nif_img, registre_nif_kind ('registre_commerce'|'nif'), registre_nif_number
+-- + contrainte flixi_drivers_docs_check, grant insert sur ces colonnes, flixi_admin_driver_files renvoie ces champs.

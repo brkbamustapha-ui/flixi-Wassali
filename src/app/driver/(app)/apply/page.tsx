@@ -9,13 +9,16 @@ import { compressImage } from "@/lib/images";
 import { WILAYAS } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
-type Key = "carte_grise_img" | "permis_img" | "selfie_img" | "vehicle_img" | "plate_img";
+type Key = "carte_grise_img" | "permis_img" | "selfie_img" | "vehicle_img" | "plate_img" | "controle_technique_img" | "assurance_img" | "registre_nif_img";
 const DOCS: { key: Key; label: string; hint: string; capture?: "user" | "environment" }[] = [
   { key: "carte_grise_img", label: "Carte grise du véhicule", hint: "Prenez la carte grise en photo", capture: "environment" },
   { key: "permis_img", label: "Permis de conduire", hint: "Recto lisible", capture: "environment" },
   { key: "selfie_img", label: "Selfie", hint: "Votre visage, bien éclairé", capture: "user" },
   { key: "vehicle_img", label: "Photo du véhicule", hint: "Le véhicule entier", capture: "environment" },
   { key: "plate_img", label: "Photo de la plaque (matricule)", hint: "Plaque d'immatriculation lisible", capture: "environment" },
+  { key: "controle_technique_img", label: "Contrôle technique", hint: "Attestation en cours de validité", capture: "environment" },
+  { key: "assurance_img", label: "Assurance du véhicule", hint: "Attestation d'assurance en cours de validité", capture: "environment" },
+  { key: "registre_nif_img", label: "Registre de commerce ou NIF", hint: "Document lisible (RC ou carte NIF)", capture: "environment" },
 ]; // libellés = clés de traduction
 
 export default function Apply() {
@@ -53,6 +56,8 @@ export default function Apply() {
       user_id: profile.id, wilaya: String(f.get("wilaya")), vehicle_type: String(f.get("vehicle")), plate_number: String(f.get("plate")).trim(),
       license_kind: String(f.get("kind")), license_number: String(f.get("license")).trim(),
       carte_grise_img: imgs.carte_grise_img, permis_img: imgs.permis_img, selfie_img: imgs.selfie_img, vehicle_img: imgs.vehicle_img, plate_img: imgs.plate_img,
+      controle_technique_img: imgs.controle_technique_img, assurance_img: imgs.assurance_img, registre_nif_img: imgs.registre_nif_img,
+      registre_nif_kind: String(f.get("rnkind")), registre_nif_number: String(f.get("rnnum")).trim(),
       responsibility_accepted: true, location_consent: true,
     });
     if (error) { setBusy(false); return setErr(error.message); }
@@ -74,10 +79,16 @@ export default function Apply() {
           <Field label={t("Matricule (plaque)")}><input name="plate" required dir="ltr" className="input text-start" placeholder="12345 118 16" /></Field>
           <Field label={t("Wilaya de résidence")}><select name="wilaya" className="select">{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
           <Field label={t("Document professionnel")}>
-            <select name="kind" className="select"><option value="agrement">{t("Licence / Agrément de transport")}</option><option value="registre_commerce">{t("Registre de commerce")}</option></select>
+            <select name="kind" className="select"><option value="agrement">{t("Licence / Agrément de transport")}</option></select>
           </Field>
         </div>
-        <Field label={t("Numéro de la licence, de l'agrément ou du registre de commerce")}><input name="license" required dir="ltr" className="input text-start" /></Field>
+        <Field label={t("Numéro de la licence ou de l'agrément")}><input name="license" required dir="ltr" className="input text-start" /></Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={t("Registre de commerce ou NIF")}>
+            <select name="rnkind" className="select"><option value="registre_commerce">{t("Registre de commerce")}</option><option value="nif">{t("NIF")}</option></select>
+          </Field>
+          <Field label={t("Numéro du registre de commerce ou du NIF")}><input name="rnnum" required dir="ltr" className="input text-start" /></Field>
+        </div>
       </div>
 
       <div className="card space-y-4 p-5 sm:p-6">

@@ -7,9 +7,11 @@ import DecisionForm from "./DecisionForm";
 import { dateTimeFr, da } from "@/lib/format";
 import { APPROVAL_LABEL, APPROVAL_TONE, type AdminDriver } from "@/lib/adminTypes";
 
-type Files = Record<"carte_grise_img" | "permis_img" | "selfie_img" | "vehicle_img" | "plate_img", string> | null;
-const LABELS: [keyof NonNullable<Files>, string][] = [
+type Files = Record<"carte_grise_img" | "permis_img" | "selfie_img" | "vehicle_img" | "plate_img", string> & { controle_technique_img?: string | null; assurance_img?: string | null; registre_nif_img?: string | null; registre_nif_kind?: string | null; registre_nif_number?: string | null } | null;
+type ImgKey = "carte_grise_img" | "permis_img" | "selfie_img" | "vehicle_img" | "plate_img" | "controle_technique_img" | "assurance_img" | "registre_nif_img";
+const LABELS: [ImgKey, string][] = [
   ["carte_grise_img", "Carte grise"], ["permis_img", "Permis de conduire"], ["selfie_img", "Selfie"], ["vehicle_img", "Véhicule"], ["plate_img", "Plaque / matricule"],
+  ["controle_technique_img", "Contrôle technique"], ["assurance_img", "Assurance du véhicule"], ["registre_nif_img", "Registre de commerce / NIF"],
 ];
 
 async function setStatus(fd: FormData) {
@@ -48,16 +50,17 @@ export default async function DriverDetail({ params }: { params: Promise<{ id: s
           <div className="card grid gap-4 p-6 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <Info k="Véhicule" v={d.vehicle_type} /><Info k="Matricule" v={d.plate_number} /><Info k="Wilaya" v={d.wilaya} />
             <Info k={d.license_kind === "registre_commerce" ? "Registre de commerce" : "Licence / Agrément"} v={d.license_number} />
+            {files?.registre_nif_number && <Info k={files.registre_nif_kind === "nif" ? "NIF" : "Registre de commerce"} v={files.registre_nif_number} />}
             <Info k="Conditions acceptées le" v={dateTimeFr(d.accepted_terms_at)} />
             <Info k="Responsabilité marchandise" v="Acceptée ✔" /><Info k="Localisation" v="Consentement donné ✔" />
           </div>
           <div className="card p-6">
             <h2 className="mb-4 text-lg font-extrabold">Documents fournis</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {files && LABELS.map(([k, l]) => (
-                <a key={k} href={files[k]} target="_blank" rel="noreferrer" className="block">
+              {files && LABELS.filter(([k]) => files[k]).map(([k, l]) => (
+                <a key={k} href={files[k] as string} target="_blank" rel="noreferrer" className="block">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={files[k]} alt={l} className="h-56 w-full rounded-2xl border border-violet-100 object-cover" />
+                  <img src={files[k] as string} alt={l} className="h-56 w-full rounded-2xl border border-violet-100 object-cover" />
                   <p className="mt-1 text-sm font-bold">{l}</p>
                 </a>
               ))}

@@ -550,4 +550,14 @@ export const DICT: Record<string, [string, string, string]> = {
   "fourniture de fausses informations ou de documents expirés ou falsifiés.": ["provision of false information or expired or forged documents.", "تقديم معلومات كاذبة أو وثائق منتهية الصلاحية أو مزوَّرة.", "إعطاء معلومات كاذبة ولا وراق منتهية ولا مزوّرة."],
   "Article 9 : Droit applicable et juridiction compétente": ["Article 9: Governing law and jurisdiction", "المادة 9: القانون المطبَّق والاختصاص القضائي", "المادة 9: القانون المطبّق والمحكمة المختصة"],
   "Les présentes CGU sont régies et interprétées conformément au droit algérien. En cas de litige non résolu à l'amiable, les tribunaux compétents du siège social de l'Éditeur seront seuls compétents.": ["These GTU are governed by and interpreted in accordance with Algerian law. In the event of a dispute not resolved amicably, the courts of the Publisher's registered office shall have sole jurisdiction.", "تخضع هذه الشروط وتُفسَّر وفق القانون الجزائري. وفي حالة نزاع لم يُحلّ ودّيًا، تختص وحدها محاكم المقر الاجتماعي للناشر.", "هاد الشروط يخضعو للقانون الجزائري. وإذا صرا نزاع وما تحلّش بالتراضي، المحاكم تاع المقر الاجتماعي للناشر هي لي تختص."],
+  // — Documents transporteur —
+  "Contrôle technique": ["Technical inspection", "المراقبة التقنية", "الكونترول تقني"],
+  "Attestation en cours de validité": ["Certificate, currently valid", "شهادة سارية المفعول", "شهادة مازالت صالحة"],
+  "Assurance du véhicule": ["Vehicle insurance", "تأمين المركبة", "تأمين الكميون"],
+  "Attestation d'assurance en cours de validité": ["Insurance certificate, currently valid", "شهادة تأمين سارية المفعول", "شهادة التأمين مازالت صالحة"],
+  "Registre de commerce ou NIF": ["Commercial register or NIF", "السجل التجاري أو NIF", "السجل التجاري ولا NIF"],
+  "Document lisible (RC ou carte NIF)": ["Legible document (commercial register or NIF card)", "وثيقة واضحة (السجل التجاري أو بطاقة NIF)", "ورقة واضحة (السجل التجاري ولا كارت NIF)"],
+  "Numéro de la licence ou de l'agrément": ["Licence or approval number", "رقم الرخصة أو الاعتماد", "رقم الرخصة ولا الاعتماد"],
+  "NIF": ["NIF (tax ID)", "NIF (رقم التعريف الجبائي)", "NIF (رقم التعريف الجبائي)"],
+  "Numéro du registre de commerce ou du NIF": ["Commercial register or NIF number", "رقم السجل التجاري أو NIF", "رقم السجل التجاري ولا NIF"],
 };
