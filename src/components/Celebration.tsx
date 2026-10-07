@@ -57,7 +57,7 @@ export default function Celebration({ ev, onClose, onGo }: { ev: CelebEvent; onC
   const { t, w } = useI18n();
   const reduce = useReducedMotion();
   const route = `${w(ev.from)} → ${w(ev.to)}`;
-  const name = ev.name ?? "";
+  const name = ev.name ?? (ev.role === "driver" ? t("un client") : t("un transporteur"));
   const cfg = {
     ended: { icon: "🔨", title: t("Enchère terminée !"), text: ev.role === "client" ? t("Offre gagnante : {n} avec {p}. À vous de la confirmer ou de la refuser.", { n: name, p: da(ev.price) }) : t("Le gagnant est {n} avec {p}. À vous de l'accepter ou de la refuser.", { n: name, p: da(ev.price) }), cta: t("Voir l'offre gagnante") },
     won: { icon: "🏆", title: t("Félicitations ! Vous avez gagné l'enchère"), text: t("Votre offre de {p} est la gagnante. En attente de la confirmation de {n}.", { p: da(ev.price), n: name }), cta: t("Voir") },

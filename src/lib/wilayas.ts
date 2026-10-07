@@ -21,3 +21,11 @@ export const WILAYAS: Wilaya[] = [
 
 export const wilayaLabel = (w: Wilaya, lang: string = "fr") => `${String(w.code).padStart(2, "0")} - ${lang === "ar" || lang === "dz" ? w.ar : w.name}`;
 export const findWilaya = (name?: string | null) => WILAYAS.find((w) => w.name === name);
+
+export const distKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+};
+/** Wilaya dont le centre est le plus proche du point (approximation pour avertir le client). */
+export const nearestWilaya = (lat: number, lng: number) => WILAYAS.reduce((best, w) => (distKm({ lat, lng }, w) < distKm({ lat, lng }, best) ? w : best), WILAYAS[0]);

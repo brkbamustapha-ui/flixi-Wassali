@@ -47,7 +47,7 @@ export async function ensureSession(): Promise<Session | null> {
 
 export type Profile = {
   id: string; role: "client" | "driver"; first_name: string; last_name: string; phone: string;
-  email: string | null; status: "active" | "suspended"; created_at: string; birth_date: string | null;
+  email: string | null; status: "active" | "suspended"; created_at: string; birth_date: string | null; warnings: number;
 };
 export type DriverFile = {
   user_id: string; wilaya: string | null; vehicle_type: string; plate_number: string; license_kind: string;
@@ -59,4 +59,9 @@ export type Order = {
   to_wilaya: string; to_address: string | null; to_lat: number | null; to_lng: number | null;
   client_price: number; status: "open" | "matched" | "in_transit" | "delivered" | "cancelled" | "expired";
   driver_id: string | null; phase?: string; auction_ends_at?: string | null; auction_round?: number; depart_date?: string | null; depart_time?: string | null; direct_driver_id?: string | null; trip_id?: string | null; final_price: number | null; commission: number; created_at: string;
+  handling?: boolean; has_img?: boolean; length_cm?: number | null; width_cm?: number | null; height_cm?: number | null;
+  want_arrival_date?: string | null; want_arrival_time?: string | null; vehicle_wanted?: string | null; urgent?: boolean; auction_hours?: number | null;
+  cancel_status?: "requested" | "refused" | null; cancel_by?: "client" | "driver" | null; cancel_reason?: string | null;
 };
+/** Colonnes d'une commande SANS la photo (lourde) : la photo se charge à la demande. */
+export const ORDER_COLS = "id,client_id,goods_type,description,weight_kg,from_wilaya,from_address,from_lat,from_lng,to_wilaya,to_address,to_lat,to_lng,client_price,status,driver_id,final_price,commission,created_at,direct_driver_id,trip_id,depart_date,depart_time,auction_ends_at,auction_round,phase,winning_bid_id,handling,has_img,length_cm,width_cm,height_cm,want_arrival_date,want_arrival_time,vehicle_wanted,urgent,auction_hours,cancel_status,cancel_by,cancel_reason";

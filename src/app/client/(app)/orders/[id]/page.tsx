@@ -5,8 +5,9 @@ import dynamic from "next/dynamic";
 import { useSession } from "@/components/Session";
 import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
-import { ORDER_STATUS, da, phoneDigits, departDate } from "@/lib/format";
-import type { Order } from "@/lib/supabase";
+import { ORDER_STATUS, da, phoneDigits, departDate, hoursUntil, CANCEL_FREE_HOURS } from "@/lib/format";
+import { ORDER_COLS, type Order } from "@/lib/supabase";
+import OrderDetails from "@/components/OrderDetails";
 import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
@@ -29,11 +30,13 @@ export default function ClientOrder() {
   const [busy, setBusy] = useState("");
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [online, setOnline] = useState<{ drivers: number } | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [reason, setReason] = useState("");
 
   const load = useCallback(async () => {
-    const { data: o } = await sb.from("flixi_orders").select("*").eq("id", id).maybeSingle();
+    const { data: o } = await sb.from("flixi_orders").select(ORDER_COLS).eq("id", id).maybeSingle();
     if (!o) return router.replace("/client");
-    setOrder(o as Order);
+    setOrder(o as unknown as Order);
     if (o.status === "open") {
       const { data } = await sb.rpc("flixi_order_bids", { p_order: id });
       setBids((data as Bid[]) ?? []);
@@ -93,10 +96,12 @@ export default function ClientOrder() {
               <h1 className="mt-1 text-2xl font-extrabold">{w(order.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(order.to_wilaya)}</h1>
               {(order.from_address || order.to_address) && <p className="mt-1 text-sm text-slate-500">{order.from_address || "—"} → {order.to_address || "—"}</p>}
               {order.description && <p className="mt-2 text-sm">{order.description}</p>}
+              {order.urgent && <span className="badge mt-2 bg-rose-100 text-rose-700">⚡ {t("URGENT")}</span>}
             </div>
             <span className={`badge ${st.tone}`}>{t(st.label)}</span>
           </div>
           <p className="mt-4 text-sm font-bold">{t("Votre prix de départ : {p}", { p: da(order.client_price) })}</p>
+          <OrderDetails order={order} sb={sb} />
         </div>
 
         {err && <Alert>{err}</Alert>}
@@ -105,7 +110,7 @@ export default function ClientOrder() {
           <div className="card space-y-4 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-extrabold">{t("Offres des transporteurs")} ({bids.length})</h2>
-              <button onClick={() => act("cancel", () => sb.rpc("flixi_cancel_order", { p_order: id }))} disabled={!!busy} className="btn btn-danger !py-1.5 text-sm">{t("Annuler la commande")}</button>
+              <button onClick={() => act("cancel", () => sb.rpc("flixi_client_cancel", { p_order: id, p_reason: null }))} disabled={!!busy} className="btn btn-danger !py-1.5 text-sm">{t("Annuler la commande")}</button>
             </div>
 
             {order.phase === "bidding" && (
@@ -123,7 +128,7 @@ export default function ClientOrder() {
                     <p className="font-extrabold">🚚 {winner.driver_first_name}</p>
                     <p className="text-xs text-slate-500">{t(winner.vehicle_type)}{winner.wilaya ? ` · ${w(winner.wilaya)}` : ""} · {t(winner.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: winner.deliveries })}</p>
                   </div>
-                  <div className="text-end"><p className="text-xl font-extrabold">{da(winner.price)}</p><p className="text-xs font-bold text-slate-500">{t("Total : {p}", { p: da(winner.price + order.commission) })}</p></div>
+                  <div className="text-end"><p className="text-xl font-extrabold">{da(winner.price)}</p></div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button disabled={!!busy} onClick={async () => { await act("acc", () => sb.rpc("flixi_client_accept_bid", { p_bid: winner.id })); window.dispatchEvent(new Event("flixi:poll")); }} className="btn btn-primary !py-2 text-sm">✔ {t("Accepter cette offre")}</button>
@@ -144,7 +149,7 @@ export default function ClientOrder() {
                         <p className="text-xs text-slate-500">{t(b.vehicle_type)}{b.wilaya ? ` · ${w(b.wilaya)}` : ""} · {t(b.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: b.deliveries })}</p>
                         {b.note && <p className="mt-1 text-sm">« {b.note} »</p>}
                       </div>
-                      <div className="text-end"><p className="text-lg font-extrabold">{da(b.price)}</p><p className="text-xs font-bold text-slate-500">{t("Total : {p}", { p: da(b.price + order.commission) })}</p></div>
+                      <div className="text-end"><p className="text-lg font-extrabold">{da(b.price)}</p></div>
                     </div>
                   </div>
                 ))}
@@ -171,12 +176,14 @@ export default function ClientOrder() {
           </div>
         )}
 
+        {order.status === "cancelled" && order.cancel_reason && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason })}</Alert>}
         {order.status === "expired" && <Alert>{t("Cette commande a expiré : aucune offre n'a été retenue avant la date de départ.")}</Alert>}
 
         {order.final_price && (
           <div className="card space-y-4 p-5 sm:p-6">
             <h2 className="text-lg font-extrabold">{t("Commande conclue ✅")}</h2>
             <PriceBreakdown price={order.final_price} role="client" />
+            <CancelBox order={order} busy={busy} act={act} sb={sb} id={id} cancelOpen={cancelOpen} setCancelOpen={setCancelOpen} reason={reason} setReason={setReason} />
             {contacts && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl bg-emerald-50 p-4">
@@ -206,6 +213,48 @@ export default function ClientOrder() {
           <p className="text-xs text-slate-500">{loc ? t("Dernière position du transporteur : {d}", { d: dateTime(loc.updated_at) }) : t("En attente de la position GPS du transporteur…")}</p>
         )}
       </div>
+    </div>
+  );
+}
+
+type CancelProps = {
+  order: Order; busy: string; id: string; sb: ReturnType<typeof import("@/lib/supabase").supabase>;
+  act: (k: string, fn: () => PromiseLike<{ error: { message: string } | null }>) => Promise<void>;
+  cancelOpen: boolean; setCancelOpen: (v: boolean) => void; reason: string; setReason: (v: string) => void;
+};
+/** Annulation après conclusion : libre si > 24 h avant le départ, sinon demande à faire accepter par le transporteur. */
+function CancelBox({ order, busy, act, sb, id, cancelOpen, setCancelOpen, reason, setReason }: CancelProps) {
+  const { t } = useI18n();
+  if (!["matched"].includes(order.status)) return null;
+  const free = hoursUntil(order.depart_date, order.depart_time) > CANCEL_FREE_HOURS;
+  if (order.cancel_status === "requested" && order.cancel_by === "driver") {
+    return (
+      <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-sm">
+        <p className="font-extrabold">⚠ {t("Le transporteur demande l'annulation de la course.")}</p>
+        <p className="mt-1">{t("Motif : {r}", { r: order.cancel_reason ?? "" })}</p>
+        <div className="mt-3 flex gap-2">
+          <button disabled={!!busy} onClick={() => act("ans", () => sb.rpc("flixi_answer_cancel", { p_order: id, p_accept: true }))} className="btn btn-primary !py-1.5 text-sm">✔ {t("Accepter l'annulation")}</button>
+          <button disabled={!!busy} onClick={() => act("ans", () => sb.rpc("flixi_answer_cancel", { p_order: id, p_accept: false }))} className="btn btn-danger !py-1.5 text-sm">✖ {t("Refuser")}</button>
+        </div>
+      </div>
+    );
+  }
+  if (order.cancel_status === "requested") return <Alert kind="info">⏳ {t("Votre demande d'annulation attend la réponse du transporteur.")}</Alert>;
+  return (
+    <div className="space-y-2">
+      {order.cancel_status === "refused" && <Alert>{t("Le transporteur a refusé l'annulation.")}</Alert>}
+      {!cancelOpen ? (
+        <button onClick={() => setCancelOpen(true)} className="btn btn-danger !py-1.5 text-sm">{free ? t("Annuler la course") : t("Demander l'annulation")}</button>
+      ) : (
+        <div className="rounded-xl border-2 border-rose-200 bg-rose-50/60 p-3 text-sm">
+          <p className="font-bold">{free ? t("Annulation gratuite : plus de 24 h avant le départ.") : t("Moins de 24 h avant le départ : l'annulation doit être acceptée par le transporteur. Indiquez le motif.")}</p>
+          <textarea className="textarea mt-2" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("Motif de l'annulation")} />
+          <div className="mt-2 flex gap-2">
+            <button disabled={!!busy || (!free && reason.trim().length < 5)} onClick={async () => { await act("cancel", () => sb.rpc("flixi_client_cancel", { p_order: id, p_reason: reason })); setCancelOpen(false); }} className="btn btn-danger !py-1.5 text-sm">{t("Confirmer")}</button>
+            <button onClick={() => setCancelOpen(false)} className="btn btn-ghost !py-1.5 text-sm">{t("Annuler")}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

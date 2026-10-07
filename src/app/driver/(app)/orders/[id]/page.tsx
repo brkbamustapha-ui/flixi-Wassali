@@ -4,8 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useSession } from "@/components/Session";
 import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
-import { ORDER_STATUS, phoneDigits } from "@/lib/format";
-import type { Order } from "@/lib/supabase";
+import { ORDER_STATUS, phoneDigits, hoursUntil, CANCEL_FREE_HOURS } from "@/lib/format";
+import { ORDER_COLS, type Order } from "@/lib/supabase";
+import OrderDetails from "@/components/OrderDetails";
 import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
@@ -23,11 +24,14 @@ export default function DriverOrder() {
   const [geoErr, setGeoErr] = useState("");
   const [err, setErr] = useState("");
   const lastSent = useRef(0);
+  const [mode, setMode] = useState<"" | "cancel" | "goods" | "noshow">("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const { data: o } = await sb.from("flixi_orders").select("*").eq("id", id).maybeSingle();
+    const { data: o } = await sb.from("flixi_orders").select(ORDER_COLS).eq("id", id).maybeSingle();
     if (!o) return router.replace("/driver");
-    setOrder(o as Order);
+    setOrder(o as unknown as Order);
     const { data: c } = await sb.rpc("flixi_order_contacts", { p_order: id });
     setContacts(c as Contacts | null);
   }, [sb, id, router]);
@@ -60,6 +64,23 @@ export default function DriverOrder() {
     load();
   }
 
+  async function submitReason() {
+    setErr(""); setBusy(true);
+    const r = mode === "noshow"
+      ? await sb.rpc("flixi_report_no_show", { p_order: id, p_reason: reason })
+      : await sb.rpc("flixi_driver_cancel", { p_order: id, p_reason: reason, p_kind: mode === "goods" ? "goods_issue" : "normal" });
+    setBusy(false);
+    if (r.error) return setErr(t(r.error.message));
+    setMode(""); setReason("");
+    load();
+  }
+  async function answerCancel(accept: boolean) {
+    setErr("");
+    const { error } = await sb.rpc("flixi_answer_cancel", { p_order: id, p_accept: accept });
+    if (error) setErr(t(error.message));
+    load();
+  }
+
   const markers = useMemo(() => {
     if (!order) return [];
     const m = [];
@@ -83,9 +104,11 @@ export default function DriverOrder() {
               <h1 className="mt-1 text-2xl font-extrabold">{w(order.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(order.to_wilaya)}</h1>
               <p className="mt-1 text-sm text-slate-500">{order.from_address || "—"} → {order.to_address || "—"}</p>
               {order.description && <p className="mt-2 text-sm">{order.description}</p>}
+              {order.urgent && <span className="badge mt-2 bg-rose-100 text-rose-700">⚡ {t("URGENT")}</span>}
             </div>
             <span className={`badge ${st.tone}`}>{t(st.label)}</span>
           </div>
+          <OrderDetails order={order} sb={sb} />
         </div>
         <div className="card space-y-4 p-5 sm:p-6">
           <PriceBreakdown price={price} role="driver" />
@@ -103,7 +126,48 @@ export default function DriverOrder() {
           {geoErr && <Alert>{geoErr}</Alert>}
           {order.status === "matched" && <button onClick={() => act("flixi_start_transit")} className="btn btn-primary w-full !py-3">🚚 {t("J'ai chargé la marchandise — démarrer la course")}</button>}
           {order.status === "in_transit" && <button onClick={() => act("flixi_mark_delivered")} className="btn btn-ok w-full !py-3">✔ {t("Marchandise livrée")}</button>}
-          {order.status === "delivered" && <Alert kind="ok">{t("Course terminée. Pensez à verser votre commission cette semaine.")}</Alert>}
+          {order.status === "delivered" && <Alert kind="ok">{t("Course terminée. Pensez à verser votre commission chaque samedi.")}</Alert>}
+          {order.status === "cancelled" && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason ?? "—" })}</Alert>}
+
+          {order.cancel_status === "requested" && order.cancel_by === "client" && ["matched", "in_transit"].includes(order.status) && (
+            <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-sm">
+              <p className="font-extrabold">⚠ {t("Le client demande l'annulation de la course.")}</p>
+              <p className="mt-1">{t("Motif : {r}", { r: order.cancel_reason ?? "" })}</p>
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => answerCancel(true)} className="btn btn-primary !py-1.5 text-sm">✔ {t("Accepter l'annulation")}</button>
+                <button onClick={() => answerCancel(false)} className="btn btn-danger !py-1.5 text-sm">✖ {t("Refuser")}</button>
+              </div>
+            </div>
+          )}
+          {order.cancel_status === "requested" && order.cancel_by === "driver" && <Alert kind="info">⏳ {t("Votre demande d'annulation attend la réponse du client. L'équipe est alertée.")}</Alert>}
+          {order.cancel_status === "refused" && order.cancel_by === "driver" && <Alert>{t("Le client a refusé l'annulation.")}</Alert>}
+
+          {["matched", "in_transit"].includes(order.status) && order.cancel_status !== "requested" && (
+            <div className="space-y-2 rounded-2xl border border-rose-100 bg-rose-50/40 p-4 text-sm">
+              <p className="font-extrabold">{t("Un problème avec cette course ?")}</p>
+              <div className="flex flex-wrap gap-2">
+                {order.status === "matched" && <button onClick={() => setMode("cancel")} className="btn btn-ghost !py-1.5 text-sm">{t("Annuler la course")}</button>}
+                <button onClick={() => setMode("goods")} className="btn btn-ghost !py-1.5 text-sm">⛔ {t("Marchandise interdite / dangereuse / non conforme")}</button>
+                <button onClick={() => setMode("noshow")} className="btn btn-ghost !py-1.5 text-sm">🚫 {t("Le client n'a pas chargé la marchandise")}</button>
+              </div>
+              {mode && (
+                <div className="rounded-xl bg-white p-3">
+                  <p className="font-bold">
+                    {mode === "cancel" && (hoursUntil(order.depart_date, order.depart_time) > CANCEL_FREE_HOURS
+                      ? t("Plus de 24 h avant le départ : vous pouvez annuler. Votre justification est transmise au client et à l'équipe.")
+                      : t("Moins de 24 h avant le départ : l'annulation doit être acceptée par le client. L'équipe est alertée ; une annulation abusive entraîne un avertissement (bannissement au bout de 2)."))}
+                    {mode === "goods" && t("La course est annulée et signalée à l'équipe : indiquez ce qui est interdit, dangereux ou non conforme aux indications du client.")}
+                    {mode === "noshow" && t("Signalez que le client ne charge pas : l'équipe vérifie, le client peut devoir 10 % du prix du transport et recevoir un avertissement (bannissement au bout de 2).")}
+                  </p>
+                  <textarea className="textarea mt-2" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("Justification (obligatoire)")} />
+                  <div className="mt-2 flex gap-2">
+                    <button disabled={busy || reason.trim().length < 5} onClick={submitReason} className="btn btn-danger !py-1.5 text-sm">{t("Envoyer")}</button>
+                    <button onClick={() => { setMode(""); setReason(""); }} className="btn btn-ghost !py-1.5 text-sm">{t("Annuler")}</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="card space-y-3 p-4 lg:col-span-2 lg:sticky lg:top-24 lg:self-start">

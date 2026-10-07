@@ -55,3 +55,11 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- flixi_complete_profile(role, first, last, phone, birth) remplace l'ancienne signature (exécution révoquée).
 
 -- flixi_set_birth(date): anciens comptes sans date -> enregistre ; < 19 ans => compte suspendu (appliqué via execute_sql)
+
+-- ===== Mise à jour « Flixi » : prix libre, commission en %, annulations, urgences, signalements, notifications (appliqué via execute_sql) =====
+-- prix >= 1 (checks orders/bids/trips) ; flixi_commission_for(prix) = 12 % (<5000), 10 % (5000-8000), 8 % (>8000), utilisée à l'acceptation ;
+-- flixi_orders: handling, goods_img, length/width/height_cm, want_arrival_*, vehicle_wanted, urgent, auction_hours, cancel_* ; flixi_trips.urgent ;
+-- flixi_profiles.warnings ; tables flixi_reports et flixi_notifs ; commissions.status accepte 'cancelled' ;
+-- RPC: flixi_client_cancel, flixi_driver_cancel, flixi_answer_cancel, flixi_report_no_show, flixi_my_notifs, flixi_notifs_seen,
+--      flixi_admin_reports / flixi_admin_warn / flixi_admin_report_close ; départ >= 10 min, < 2 h = urgent ; fin d'enchère à durée choisie par flixi_settle_all ;
+--      noms retirés des offres visibles par les transporteurs ; profils non modifiables par l'utilisateur (update révoqué).

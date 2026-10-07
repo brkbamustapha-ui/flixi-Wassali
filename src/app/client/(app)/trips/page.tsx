@@ -14,7 +14,8 @@ type MyBid = {
   phase: string; trip_status: string; auction_ends_at: string | null; order_id: string | null; driver_first_name: string; best: number | null;
 };
 
-function OfferList({ offers, empty, title }: { offers: { price: number; name: string; mine: boolean; won: boolean }[]; empty: string; title: string }) {
+function OfferList({ offers, empty, title }: { offers: { price: number; mine: boolean; won: boolean }[]; empty: string; title: string }) {
+  const { t } = useI18n();
   if (!offers?.length) return <p className="text-xs font-semibold text-slate-500">{empty}</p>;
   return (
     <div>
@@ -22,7 +23,7 @@ function OfferList({ offers, empty, title }: { offers: { price: number; name: st
       <ul className="max-h-40 space-y-1 overflow-y-auto pe-1">
         {offers.map((o, i) => (
           <li key={i} className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 text-sm ${o.mine ? "bg-pink-50 font-extrabold ring-1 ring-brand-pink" : "bg-violet-50/60 font-semibold"}`}>
-            <span>{i === 0 ? "🥇 " : `${i + 1}. `}{o.name}{o.mine ? " ⭐" : ""}{o.won ? " 🏆" : ""}</span>
+            <span>{i === 0 ? "🥇 " : `${i + 1}. `}{o.mine ? t("Vous") : t("Offre")}{o.mine ? " ⭐" : ""}{o.won ? " 🏆" : ""}</span>
             <b dir="ltr">{da(o.price)}</b>
           </li>
         ))}
@@ -109,7 +110,7 @@ export default function ClientTrips() {
             return (
               <div key={x.id} className="card p-5">
                 <div className="flex items-center justify-between">
-                  <span className="badge bg-violet-100 text-violet-700">🚚 {x.driver_first_name}</span>
+                  <span className="badge bg-violet-100 text-violet-700">🚚 {x.driver_first_name ?? t("Transporteur")}</span>{x.urgent && <span className="badge ms-1 bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}
                   <span className="text-xs font-bold text-slate-500">{t(x.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: x.deliveries })}</span>
                 </div>
                 <p className="mt-3 text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)}</p>

@@ -3,7 +3,7 @@ export const DEFAULT_LANG: Lang = "dz";
 export const LANG_COOKIE = "flixi_lang";
 
 export const LANGS: { code: Lang; label: string; short: string }[] = [
-  { code: "dz", label: "الدارجة (وهران)", short: "دز" },
+  { code: "dz", label: "الدارجة", short: "دز" },
   { code: "ar", label: "العربية", short: "عربي" },
   { code: "fr", label: "Français", short: "FR" },
   { code: "en", label: "English", short: "EN" },

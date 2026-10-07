@@ -9,7 +9,7 @@ import { useI18n } from "@/lib/i18n";
 
 export type PublicTrip = {
   id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; price: number | null; note: string | null;
-  driver_first_name: string; vehicle_type: string; deliveries: number; phase: string; round: number; offers: { price: number; name: string; mine: boolean; won: boolean }[];
+  driver_first_name: string | null; urgent?: boolean; vehicle_type: string; deliveries: number; phase: string; round: number; offers: { price: number; mine: boolean; won: boolean }[];
   is_mine: boolean; best: number | null; bids: number; my_bid: { price: number; status: string } | null;
 };
 
@@ -26,7 +26,7 @@ export default function TripBidModal({ trip, mode, sb, onClose, onDone }: { trip
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const p = Number(price);
-  const ok = Number.isFinite(p) && p >= MIN_PRICE;
+  const ok = Number.isFinite(p) && p >= MIN_PRICE && Number.isInteger(p);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -70,11 +70,11 @@ export default function TripBidModal({ trip, mode, sb, onClose, onDone }: { trip
         {accept ? (
           <p className="text-lg font-extrabold">{t("Prix annoncé : {p}", { p: da(trip.price ?? 0) })}</p>
         ) : (
-          <Field label={t("Votre prix (DA) — minimum {p}", { p: da(MIN_PRICE) })}>
-            <input className="input !text-lg !font-extrabold" type="number" min={MIN_PRICE} step={100} required value={price} onChange={(e) => setPrice(e.target.value)} dir="ltr" />
+          <Field label={t("Votre prix (DA)")}>
+            <input className="input !text-lg !font-extrabold" type="number" min={MIN_PRICE} step={1} required value={price} onChange={(e) => setPrice(e.target.value)} dir="ltr" />
           </Field>
         )}
-        {!ok && <Alert>{t("Le prix ne peut pas être inférieur à {p} (prix minimum du marché algérien).", { p: da(MIN_PRICE) })}</Alert>}
+        {!ok && <Alert>{t("Indiquez un prix valide (nombre entier en DA).")}</Alert>}
         {ok && <PriceBreakdown price={p} role="client" />}
         <p className="rounded-xl bg-violet-50 p-3 text-xs font-semibold text-violet-800">
           ℹ️ {accept ? t("Votre offre au prix annoncé rejoint l'enchère. Le transporteur la termine quand il le souhaite.") : t("Le transporteur termine l'enchère quand il le souhaite : le prix le plus élevé gagne, puis il accepte ou refuse (s'il refuse, l'enchère reprend).")}

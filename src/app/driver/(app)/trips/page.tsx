@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useSession } from "@/components/Session";
 import { Alert, Empty, Field, Spinner } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
-import { MIN_PRICE, auctionPreview, da, departDate } from "@/lib/format";
+import { MIN_PRICE, auctionPreview, da, departDate, commissionFor } from "@/lib/format";
 import { WILAYAS } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
 type TBid = { id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null; client_first_name: string };
 type Trip = {
   id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; price: number | null; note: string | null;
-  status: string; phase: string; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
+  status: string; phase: string; urgent?: boolean; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
 };
 
 export default function Trips() {
@@ -38,9 +38,9 @@ export default function Trips() {
     const f = new FormData(form);
     const price = f.get("price") ? Number(f.get("price")) : null;
     if (f.get("from") === f.get("to")) return setErr(t("Choisissez deux wilayas différentes."));
-    if (price !== null && price < MIN_PRICE) return setErr(t("Le prix minimum est de {p}.", { p: da(MIN_PRICE) }));
+    if (price !== null && (!Number.isInteger(price) || price < MIN_PRICE)) return setErr(t("Indiquez un prix valide (nombre entier en DA)."));
     if (!preview) return setErr(t("Choisissez la date et l'heure de départ."));
-    if (!preview.ok) return setErr(t("Le départ doit être dans plus de 2 heures."));
+    if (!preview.ok) return setErr(t("Le départ doit être dans au moins 10 minutes."));
     setBusy(true);
     const { error } = await sb.from("flixi_trips").insert({
       driver_id: profile.id, from_wilaya: String(f.get("from")), to_wilaya: String(f.get("to")),
@@ -77,10 +77,10 @@ export default function Trips() {
           <Field label={t("Jour de départ")}><input type="date" min={today} required value={dDate} onChange={(e) => setDDate(e.target.value)} className="input" dir="ltr" /></Field>
           <Field label={t("Heure de départ")}><input type="time" required value={dTime} onChange={(e) => setDTime(e.target.value)} className="input" dir="ltr" /></Field>
         </div>
-        {preview && (preview.ok
-          ? <Alert kind="info">🔓 {t("L'enchère reste ouverte à tous les clients jusqu'à ce que vous la terminiez.")}</Alert>
-          : <Alert>{t("Le départ doit être dans plus de 2 heures.")}</Alert>)}
-        <Field label={t("Prix à partir de (DA, optionnel)")} hint={t("Les clients peuvent accepter ce prix tout de suite ou enchérir à partir de 1 000 DA.")}><input name="price" type="number" min={MIN_PRICE} step={100} className="input" dir="ltr" /></Field>
+        {preview && !preview.ok && <Alert>{t("Le départ doit être dans au moins 10 minutes.")}</Alert>}
+        {preview?.ok && preview.urgent && <Alert kind="info">⚡ {t("Trajet EXPRESS (départ dans moins de 2 heures) : il sera mis en avant auprès des clients, qui peuvent profiter d'un prix bas.")}</Alert>}
+        {preview?.ok && !preview.urgent && <Alert kind="info">🔓 {t("L'enchère reste ouverte à tous les clients jusqu'à ce que vous la terminiez.")}</Alert>}
+        <Field label={t("Prix à partir de (DA, optionnel)")} hint={t("Prix libre. Les clients peuvent accepter ce prix tout de suite ou enchérir.")}><input name="price" type="number" min={MIN_PRICE} step={1} className="input" dir="ltr" /></Field>
         <Field label={t("Note (capacité, type de marchandise…)")}><input name="note" className="input" /></Field>
         {err && <Alert>{err}</Alert>}
         <button disabled={busy || !approved} className="btn btn-primary w-full">{t("Publier le trajet")}</button>
@@ -95,7 +95,7 @@ export default function Trips() {
             <div key={x.id} className="card space-y-3 p-5">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)}</p>
+                  <p className="text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)} {x.urgent && <span className="badge bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}</p>
                   <p className="text-sm text-slate-600">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}{x.price ? ` · ${t("Prix annoncé : {p}", { p: da(x.price) })}` : ""}</p>
                 </div>
                 <button className="btn btn-danger !px-3 !py-1 text-xs" onClick={async () => { await sb.from("flixi_trips").update({ status: "closed" }).eq("id", x.id); load(); }}>{t("Fermer")}</button>
@@ -107,8 +107,8 @@ export default function Trips() {
                 <div className="rounded-2xl border-2 border-brand-pink bg-pink-50/50 p-4">
                   <p className="text-sm font-extrabold text-brand-pink">🏆 {t("Enchère terminée — offre gagnante")}</p>
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                    <div><p className="font-extrabold">👤 {winner.client_first_name}</p><p className="text-xs text-slate-600">{t(winner.goods_type)}{winner.weight_kg ? ` · ${winner.weight_kg} kg` : ""}{winner.description ? ` · ${winner.description}` : ""}</p></div>
-                    <div className="text-end"><p className="text-xl font-extrabold">{da(winner.price)}</p><p className="text-xs font-bold text-slate-500">{t("À encaisser : {p}", { p: da(winner.price + 500) })}</p></div>
+                    <div><p className="font-extrabold">👤 {t("Client")}</p><p className="text-xs text-slate-600">{t(winner.goods_type)}{winner.weight_kg ? ` · ${winner.weight_kg} kg` : ""}{winner.description ? ` · ${winner.description}` : ""}</p></div>
+                    <div className="text-end"><p className="text-xl font-extrabold">{da(winner.price)}</p><p className="text-xs font-bold text-slate-500">{t("Vous recevrez {a} (net, commission de {c} déduite)", { a: da(winner.price - commissionFor(winner.price)), c: da(commissionFor(winner.price)) })}</p></div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button onClick={() => act("flixi_trip_accept_winner", x)} className="btn btn-primary !py-2 text-sm">✔ {t("Accepter cette offre")}</button>
@@ -123,7 +123,7 @@ export default function Trips() {
                 <div className="space-y-1.5">
                   {x.bids.map((b, i) => (
                     <div key={b.id} className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5 text-sm ${b.status === "won" ? "border-brand-pink" : i === 0 ? "border-emerald-300 bg-emerald-50/50" : "border-violet-100"}`}>
-                      <span><b>👤 {b.client_first_name}</b> <span className="text-xs text-slate-500">· {t(b.goods_type)}{b.weight_kg ? ` · ${b.weight_kg} kg` : ""}</span></span>
+                      <span><b>👤 {t("Client")} {i + 1}</b> <span className="text-xs text-slate-500">· {t(b.goods_type)}{b.weight_kg ? ` · ${b.weight_kg} kg` : ""}</span></span>
                       <span className="flex items-center gap-2"><b className="text-base">{da(b.price)}</b>{i === 0 && x.phase === "bidding" && <span className="badge bg-emerald-100 text-emerald-700">{t("Meilleur prix")}</span>}</span>
                     </div>
                   ))}

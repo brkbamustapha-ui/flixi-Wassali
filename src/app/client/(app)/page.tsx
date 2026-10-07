@@ -5,7 +5,7 @@ import { useSession } from "@/components/Session";
 import { Empty, Spinner } from "@/components/ui";
 import { Countdown } from "@/components/Countdown";
 import { ORDER_STATUS, da, departDate } from "@/lib/format";
-import type { Order } from "@/lib/supabase";
+import { ORDER_COLS, type Order } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 
 type BidLite = { order_id: string; price: number; status: string };
@@ -20,10 +20,10 @@ export default function ClientHome() {
     let alive = true;
     async function load() {
       await sb.rpc("flixi_settle_all");
-      const { data } = await sb.from("flixi_orders").select("*").eq("client_id", profile.id).order("created_at", { ascending: false });
+      const { data } = await sb.from("flixi_orders").select(ORDER_COLS).eq("client_id", profile.id).order("created_at", { ascending: false });
       const { data: b } = await sb.from("flixi_bids").select("order_id,price,status").neq("status", "rejected");
       if (!alive) return;
-      setOrders((data as Order[]) ?? []);
+      setOrders((data as unknown as Order[]) ?? []);
       setBids((b as BidLite[]) ?? []);
     }
     load();

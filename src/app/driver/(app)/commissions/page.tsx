@@ -5,7 +5,7 @@ import { Alert, Empty, Spinner } from "@/components/ui";
 import { PAY_METHODS, da } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
-type Com = { id: string; order_id: string; amount: number; status: "unpaid" | "paid"; method: string | null; paid_at: string | null; created_at: string };
+type Com = { id: string; order_id: string; amount: number; status: "unpaid" | "paid" | "cancelled"; method: string | null; paid_at: string | null; created_at: string };
 
 function weekStart(d: string) {
   const x = new Date(d);
@@ -19,7 +19,7 @@ export default function Commissions() {
   const { sb } = useSession();
   const { t, date } = useI18n();
   const [rows, setRows] = useState<Com[] | null>(null);
-  useEffect(() => { sb.from("flixi_commissions").select("*").order("created_at", { ascending: false }).then(({ data }) => setRows((data as Com[]) ?? [])); }, [sb]);
+  useEffect(() => { sb.from("flixi_commissions").select("*").order("created_at", { ascending: false }).then(({ data }) => setRows(((data as Com[]) ?? []).filter((r) => r.status !== "cancelled"))); }, [sb]);
   if (!rows) return <Spinner />;
 
   const unpaid = rows.filter((r) => r.status === "unpaid");
@@ -33,10 +33,10 @@ export default function Commissions() {
       <div className="grad-bg rounded-3xl p-6 text-white shadow-lg">
         <p className="text-sm font-bold opacity-90">{t("Total à verser")}</p>
         <p className="mt-1 text-4xl font-extrabold">{da(total)}</p>
-        <p className="mt-2 text-sm text-white/90">{t(unpaid.length > 1 ? "{n} courses × 500 DA" : "{n} course × 500 DA", { n: unpaid.length })}</p>
+        <p className="mt-2 text-sm text-white/90">{t(unpaid.length > 1 ? "{n} courses (8 à 12 % du prix de chaque course)" : "{n} course (8 à 12 % du prix de la course)", { n: unpaid.length })}</p>
       </div>
-      <Alert kind="info">💳 {t("En fin de semaine, rendez-vous à nos bureaux pour verser vos commissions par Edahabia, CIB, Visa ou Mastercard. Votre compte sera mis à jour par l'équipe.")}</Alert>
-      {rows.length === 0 ? <Empty icon="💳" title={t("Aucune commission")} text={t("Une commission de 500 DA est ajoutée à chaque course conclue.")} /> : (
+      <Alert kind="info">💳 {t("Chaque samedi, rendez-vous à nos bureaux pour verser vos commissions par Edahabia, CIB, Visa ou Mastercard. Votre compte sera mis à jour par l'équipe.")}</Alert>
+      {rows.length === 0 ? <Empty icon="💳" title={t("Aucune commission")} text={t("Une commission (12 % sous 5 000 DA, 10 % de 5 000 à 8 000 DA, 8 % au-delà) est ajoutée à chaque course conclue.")} /> : (
         [...weeks.entries()].map(([k, list]) => {
           const start = new Date(k), end = new Date(start); end.setDate(end.getDate() + 6);
           const due = list.filter((r) => r.status === "unpaid").reduce((s, r) => s + r.amount, 0);

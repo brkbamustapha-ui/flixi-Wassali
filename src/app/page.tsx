@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import LangSwitch from "@/components/LangSwitch";
-import { COMMISSION, MIN_PRICE, da } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { useAutoEnter } from "@/lib/useAutoEnter";
 import { Spinner } from "@/components/ui";
@@ -69,8 +68,8 @@ export default function Home() {
 
       <section className="mx-auto max-w-4xl px-4 pb-16">
         <div className="card grid gap-6 p-8 md:grid-cols-3">
-          <div><p className="grad-text text-3xl font-extrabold" dir="ltr">{da(MIN_PRICE)}</p><p className="mt-1 text-sm font-semibold text-slate-600">{t("Prix minimum d'une course, aligné sur le marché algérien.")}</p></div>
-          <div><p className="grad-text text-3xl font-extrabold" dir="ltr">{da(COMMISSION)}</p><p className="mt-1 text-sm font-semibold text-slate-600">{t("Commission fixe Flixi Tawsil par course, affichée en toute transparence.")}</p></div>
+          <div><p className="grad-text text-3xl font-extrabold">{t("Prix libre")}</p><p className="mt-1 text-sm font-semibold text-slate-600">{t("Vous fixez votre prix, même pour un petit colis : aucun minimum imposé.")}</p></div>
+          <div><p className="grad-text text-3xl font-extrabold" dir="ltr">8 – 12 %</p><p className="mt-1 text-sm font-semibold text-slate-600">{t("Commission de la plateforme, payée par le transporteur : 12 % (< 5 000 DA), 10 % (5 000–8 000 DA), 8 % (> 8 000 DA).")}</p></div>
           <div><p className="grad-text text-3xl font-extrabold" dir="ltr">100 %</p><p className="mt-1 text-sm font-semibold text-slate-600">{t("Transporteurs vérifiés : permis, carte grise, agrément et selfie.")}</p></div>
         </div>
       </section>

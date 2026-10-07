@@ -1,6 +1,6 @@
 "use client";
 import { ReactNode } from "react";
-import { COMMISSION, da } from "@/lib/format";
+import { commissionFor, commissionRate, da } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
@@ -32,21 +32,21 @@ export function Empty({ icon, title, text }: { icon: string; title: string; text
   );
 }
 
-/** Détail prix : prix transporteur + commission Flixi = total à payer */
+/** Détail prix : le client paie uniquement le prix convenu ; la commission est à la charge du transporteur. */
 export function PriceBreakdown({ price, role }: { price: number; role: "client" | "driver" }) {
   const { t } = useI18n();
-  const total = price + COMMISSION;
+  const com = commissionFor(price);
   return (
     <div className="rounded-2xl bg-gradient-to-br from-orange-50 via-pink-50 to-violet-50 p-4 text-sm">
-      <Row k={role === "client" ? t("Prix du transporteur") : t("Votre prix (net)")} v={da(price)} />
-      <Row k={t("Commission Flixi Tawsil")} v={`+ ${da(COMMISSION)}`} />
-      <div className="my-2 border-t border-violet-200" />
       {role === "client" ? (
-        <Row k={t("Total à payer")} v={da(total)} strong />
+        <Row k={t("Total à payer au transporteur")} v={da(price)} strong />
       ) : (
         <>
-          <Row k={t("Prix à encaisser auprès du client")} v={da(total)} strong />
-          <p className="mt-1 text-xs text-slate-500">{t("Dont {amount} de commission à verser à Flixi Tawsil en fin de semaine.", { amount: da(COMMISSION) })}</p>
+          <Row k={t("Prix de la course")} v={da(price)} />
+          <Row k={t("Commission de la plateforme ({r} %)", { r: Math.round(commissionRate(price) * 100) })} v={`− ${da(com)}`} />
+          <div className="my-2 border-t border-violet-200" />
+          <Row k={t("Vous recevrez (net)")} v={da(price - com)} strong />
+          <p className="mt-1 text-xs text-slate-500">{t("Le client vous paie {a}. La commission de {c} est à verser à la plateforme chaque samedi.", { a: da(price), c: da(com) })}</p>
         </>
       )}
     </div>

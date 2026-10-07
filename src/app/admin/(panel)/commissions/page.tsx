@@ -12,7 +12,7 @@ async function settle(fd: FormData) {
 }
 
 export default async function Commissions() {
-  const rows = await adminRpc<C[]>("flixi_admin_list", { what: "commissions" });
+  const rows = (await adminRpc<C[]>("flixi_admin_list", { what: "commissions" })).filter((r) => (r.status as string) !== "cancelled");
   const unpaid = rows.filter((r) => r.status === "unpaid");
   const byDriver = new Map<string, { name: string; phone: string; total: number; n: number }>();
   unpaid.forEach((r) => {

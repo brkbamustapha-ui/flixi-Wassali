@@ -3,11 +3,11 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "@/components/Session";
 import { Alert, Empty, Spinner } from "@/components/ui";
-import { COMMISSION, ORDER_STATUS, da } from "@/lib/format";
-import type { Order } from "@/lib/supabase";
+import { ORDER_STATUS, da, commissionFor } from "@/lib/format";
+import { ORDER_COLS, type Order } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 
-type WinTrip = { id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; phase: string; winning_bid_id: string | null; bids: { id: string; price: number; status: string; goods_type: string; client_first_name: string; description: string | null; weight_kg: number | null }[] };
+type WinTrip = { id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; phase: string; winning_bid_id: string | null; bids: { id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null }[] };
 type WonBid = { id: string; price: number; order: Order };
 
 export default function DriverHome() {
@@ -20,16 +20,16 @@ export default function DriverHome() {
   const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
-    const { data: o } = await sb.from("flixi_orders").select("*").eq("driver_id", profile.id).order("created_at", { ascending: false });
+    const { data: o } = await sb.from("flixi_orders").select(ORDER_COLS).eq("driver_id", profile.id).order("created_at", { ascending: false });
     await sb.rpc("flixi_settle_all");
     const { data: tr } = await sb.rpc("flixi_my_trips_overview");
     setDecisions(((tr as WinTrip[]) ?? []).filter((x) => x.phase === "awaiting_driver"));
     const { data: b } = await sb.from("flixi_bids").select("id,price,order_id").eq("status", "won");
     const ids = (b ?? []).map((x) => x.order_id);
-    const { data: po } = ids.length ? await sb.from("flixi_orders").select("*").in("id", ids).eq("status", "open") : { data: [] as Order[] };
-    setWaiting((b ?? []).map((x) => ({ id: x.id, price: x.price, order: (po as Order[]).find((p) => p.id === x.order_id)! })).filter((x) => x.order));
+    const { data: po } = ids.length ? await sb.from("flixi_orders").select(ORDER_COLS).in("id", ids).eq("status", "open") : { data: [] as Order[] };
+    setWaiting((b ?? []).map((x) => ({ id: x.id, price: x.price, order: (po as unknown as Order[]).find((p) => p.id === x.order_id)! })).filter((x) => x.order));
     const { data: c } = await sb.from("flixi_commissions").select("amount").eq("status", "unpaid");
-    setOrders((o as Order[]) ?? []);
+    setOrders((o as unknown as Order[]) ?? []);
     setUnpaid((c ?? []).reduce((s, x) => s + x.amount, 0));
   }, [sb, profile.id]);
 
@@ -78,8 +78,8 @@ export default function DriverHome() {
             return (
               <div key={x.id} className="card border-2 !border-brand-pink p-5">
                 <p className="font-extrabold">{w(x.from_wilaya)} → {w(x.to_wilaya)} · 🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}</p>
-                <p className="mt-1 text-sm">{t("Le client {n} a gagné l'enchère avec {p}. Acceptez pour conclure et afficher les numéros de téléphone ; si vous refusez, l'enchère recommence.", { n: win.client_first_name, p: da(win.price) })}</p>
-                <p className="mt-1 text-xs text-slate-500">{t(win.goods_type)}{win.weight_kg ? ` · ${win.weight_kg} kg` : ""} — {t("Vous encaisserez {a} (dont {c} de commission Flixi à verser).", { a: da(win.price + COMMISSION), c: da(COMMISSION) })}</p>
+                <p className="mt-1 text-sm">{t("Un client a gagné l'enchère avec {p}. Acceptez pour conclure et afficher les numéros de téléphone ; si vous refusez, l'enchère recommence.", { p: da(win.price) })}</p>
+                <p className="mt-1 text-xs text-slate-500">{t(win.goods_type)}{win.weight_kg ? ` · ${win.weight_kg} kg` : ""} — {t("Vous recevrez {a} net (commission de {c} à verser chaque samedi).", { a: da(win.price - commissionFor(win.price)), c: da(commissionFor(win.price)) })}</p>
                 <div className="mt-3 flex gap-2">
                   <button onClick={() => answer(x.id, true)} className="btn btn-primary !py-2 text-sm">✔ {t("Confirmer")}</button>
                   <button onClick={() => answer(x.id, false)} className="btn btn-danger !py-2 text-sm">{t("Refuser")}</button>
