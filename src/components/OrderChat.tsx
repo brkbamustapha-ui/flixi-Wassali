@@ -51,7 +51,7 @@ export function ChatThread({ sb, orderId, open, other, className = "" }: { sb: S
   const lastMine = [...msgs].reverse().find((m) => m.mine);
   return (
     <div className={`flex min-h-0 flex-col ${className}`}>
-      <div ref={box} className="flex-1 space-y-0.5 overflow-y-auto bg-white px-3 py-3">
+      <div ref={box} className="flex-1 space-y-0.5 overflow-y-auto overscroll-contain bg-white px-3 py-3" style={{ touchAction: "pan-y" }}>
         {msgs.length === 0 && <p className="py-10 text-center text-sm text-slate-400">{t("Aucun message. Écrivez pour organiser le chargement.")}</p>}
         <AnimatePresence initial={false}>
           {msgs.map((m, i) => {
@@ -107,13 +107,33 @@ export default function ChatHead({ sb, orderId, open, refLabel, other }: { sb: S
     return () => { clearInterval(i); window.removeEventListener("flixi:chat-read", load); window.removeEventListener("flixi:chat-open", openIt); };
   }, [sb, orderId]);
 
+  // Fenêtre ouverte : la page derrière est figée (plus de défilement), Échap ferme
+  useEffect(() => {
+    if (!show) return;
+    const y = window.scrollY;
+    const b = document.body;
+    const prev = { position: b.style.position, top: b.style.top, width: b.style.width, overflow: b.style.overflow };
+    b.style.position = "fixed"; b.style.top = `-${y}px`; b.style.width = "100%"; b.style.overflow = "hidden";
+    document.documentElement.style.overscrollBehavior = "none";
+    const k = (e: KeyboardEvent) => e.key === "Escape" && setShow(false);
+    window.addEventListener("keydown", k);
+    return () => {
+      b.style.position = prev.position; b.style.top = prev.top; b.style.width = prev.width; b.style.overflow = prev.overflow;
+      document.documentElement.style.overscrollBehavior = "";
+      window.scrollTo(0, y);
+      window.removeEventListener("keydown", k);
+    };
+  }, [show]);
+
   const label = other === "client" ? t("Client") : t("Transporteur");
   return (
     <>
       <AnimatePresence>
+        {show && <motion.div key="chat-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShow(false)} className="fixed inset-0 z-[75] bg-black/40" style={{ touchAction: "none" }} aria-hidden />}
         {show && (
-          <motion.div initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.96 }} transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="fixed inset-x-2 bottom-20 z-[80] flex h-[min(72vh,560px)] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/10 sm:inset-x-auto sm:end-4 sm:w-[380px] md:bottom-4">
+          <motion.div key="chat-panel" initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.96 }} transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            role="dialog" aria-modal="true"
+            className="fixed inset-0 z-[80] flex flex-col overflow-hidden bg-white shadow-2xl sm:inset-auto sm:bottom-4 sm:end-4 sm:h-[min(72vh,560px)] sm:w-[380px] sm:rounded-3xl sm:ring-1 sm:ring-black/10">
             <div className="flex items-center gap-3 border-b border-slate-100 bg-white px-4 py-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 text-sm font-extrabold text-violet-700">{label.slice(0, 1)}</span>
               <div className="flex-1"><p className="font-extrabold leading-tight">{label}</p><p className="text-xs text-slate-500">{refLabel ?? ""}</p></div>
