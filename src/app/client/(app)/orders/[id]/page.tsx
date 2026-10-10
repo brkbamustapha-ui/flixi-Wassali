@@ -156,8 +156,8 @@ export default function ClientOrder() {
                     </div>
                     {order.phase !== "closed" && (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <button disabled={!!busy || !b.loc_ok} onClick={async () => { await act("choose", () => sb.rpc("flixi_client_choose_bid", { p_bid: b.id })); window.dispatchEvent(new Event("flixi:poll")); }} className="btn btn-primary !py-1.5 text-sm">✔ {t("Choisir ce transporteur")}</button>
-                        {!b.loc_ok && <span className="text-xs font-bold text-rose-600">📍 {t("Localisation du transporteur désactivée")}</span>}
+                        <button disabled={!!busy} onClick={async () => { await act("choose", () => sb.rpc("flixi_client_choose_bid", { p_bid: b.id })); window.dispatchEvent(new Event("flixi:poll")); }} className="btn btn-primary !py-1.5 text-sm">✔ {t("Choisir ce transporteur")}</button>
+                        {!b.loc_ok && <span className="text-xs font-semibold text-amber-700">📍 {t("Ce transporteur n'a pas partagé sa position récemment")}</span>}
                       </div>
                     )}
                   </div>

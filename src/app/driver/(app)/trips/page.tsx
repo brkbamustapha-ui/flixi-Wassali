@@ -119,6 +119,7 @@ export default function Trips() {
 
       <div className="space-y-4 lg:col-span-3">
         <h2 className="text-xl font-extrabold">{t("Mes trajets")}</h2>
+        {err && <Alert>{err}</Alert>}
         {live.length === 0 && past.length === 0 ? <Empty icon="🗓" title={t("Aucun trajet annoncé")} /> : null}
         {live.map((x) => {
           const winner = x.bids.find((b) => b.id === x.winning_bid_id && b.status === "won");
