@@ -5,6 +5,7 @@ import { useSession } from "@/components/Session";
 import { Alert, Empty, Spinner } from "@/components/ui";
 import { ORDER_STATUS, da, commissionFor } from "@/lib/format";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
+import { pingNow } from "@/lib/location";
 import { useI18n } from "@/lib/i18n";
 
 type WinTrip = { id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; phase: string; winning_bid_id: string | null; bids: { id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null }[] };
@@ -37,6 +38,7 @@ export default function DriverHome() {
 
   async function answer(tripId: string, ok: boolean) {
     setErr("");
+    if (ok && !(await pingNow(sb))) return setErr(t("Position introuvable : activez la localisation de votre appareil puis réessayez."));
     const { error } = await sb.rpc(ok ? "flixi_trip_accept_winner" : "flixi_trip_decline_winner", { p_trip: tripId });
     if (error) setErr(t(error.message));
     load();

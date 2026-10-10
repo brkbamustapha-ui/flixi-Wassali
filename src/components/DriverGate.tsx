@@ -47,14 +47,15 @@ export function LocationGuard({ sb, children }: { sb: SupabaseClient; children: 
     if (!navigator.geolocation) return setState("unsupported");
     let dead = false;
     const push = (lat: number, lng: number) => {
-      if (Date.now() - last.current < 20000) return;
+      if (Date.now() - last.current < 15000) return;
       last.current = Date.now();
       sb.rpc("flixi_driver_ping_loc", { p_lat: lat, p_lng: lng });
     };
     const ok = (p: GeolocationPosition) => { if (dead) return; setState("ok"); push(p.coords.latitude, p.coords.longitude); };
     const ko = (e: GeolocationPositionError) => { if (!dead && e.code === 1) setState("denied"); };
-    const id = navigator.geolocation.watchPosition(ok, ko, { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 });
-    const tick = setInterval(() => navigator.geolocation.getCurrentPosition(ok, ko, { maximumAge: 30000, timeout: 20000 }), 45000);
+    const id = navigator.geolocation.watchPosition(ok, ko, { enableHighAccuracy: false, maximumAge: 30000, timeout: 60000 });
+    navigator.geolocation.getCurrentPosition(ok, ko, { enableHighAccuracy: false, maximumAge: 120000, timeout: 15000 });
+    const tick = setInterval(() => navigator.geolocation.getCurrentPosition(ok, ko, { enableHighAccuracy: false, maximumAge: 60000, timeout: 20000 }), 45000);
     return () => { dead = true; navigator.geolocation.clearWatch(id); clearInterval(tick); };
   }, [sb]);
 

@@ -6,6 +6,7 @@ import { Alert, Empty, Spinner } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
 import { MIN_PRICE, da, departDate, commissionFor, commissionRate } from "@/lib/format";
 import OrderDetails from "@/components/OrderDetails";
+import { pingNow } from "@/lib/location";
 import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
@@ -88,6 +89,7 @@ export default function Requests() {
     setErr("");
     if (!Number.isFinite(price) || price < MIN_PRICE || !Number.isInteger(price)) return setErr(t("Indiquez un prix valide (nombre entier en DA)."));
     setBusy(o.id);
+    if (!(await pingNow(sb))) { setBusy(""); return setErr(t("Position introuvable : activez la localisation de votre appareil puis réessayez.")); }
     const mine = bids.find((b) => b.order_id === o.id && b.status === "pending");
     const { error } = mine
       ? await sb.from("flixi_bids").update({ price }).eq("id", mine.id)
@@ -98,6 +100,7 @@ export default function Requests() {
   }
   async function buyNow(o: Order) {
     setErr(""); setBusy(o.id);
+    if (!(await pingNow(sb))) { setBusy(""); return setErr(t("Position introuvable : activez la localisation de votre appareil puis réessayez.")); }
     const { error } = await sb.rpc("flixi_driver_buy_now", { p_order: o.id });
     if (error) fail(error.message);
     setBusy("");

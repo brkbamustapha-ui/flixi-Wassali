@@ -853,4 +853,5 @@ export const DICT: Record<string, [string, string, string]> = {
   "explication trop courte": ["explanation too short", "الشرح قصير جدًا", "الشرح قصير بزاف"],
   "aucun bannissement": ["no ban", "لا يوجد حظر", "ما كاش حظر"],
   "course principale introuvable": ["main trip not found", "الرحلة الرئيسية غير موجودة", "التوصيلة الرئيسية ما كانتش"],
+  "Position introuvable : activez la localisation de votre appareil puis réessayez.": ["Location not found: enable your device's location then try again.", "تعذّر تحديد الموقع: فعّل خدمة الموقع في جهازك ثم أعد المحاولة.", "ما لقيناش الموقع: شعّل الموقع في التيليفون تاعك وعاود."],
 };

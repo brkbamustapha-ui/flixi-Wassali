@@ -8,6 +8,7 @@ import { MIN_PRICE, auctionPreview, da, departDate, commissionFor } from "@/lib/
 import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import { Stars } from "@/components/RatePanel";
+import { pingNow } from "@/lib/location";
 import { useI18n } from "@/lib/i18n";
 
 type TBid = { id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null; alias: string; rating: number; rating_count: number };
@@ -66,6 +67,7 @@ export default function Trips() {
 
   async function chooseBid(id: string) {
     setErr("");
+    if (!(await pingNow(sb))) return setErr(t("Position introuvable : activez la localisation de votre appareil puis réessayez."));
     const { error } = await sb.rpc("flixi_trip_choose_bid", { p_bid: id });
     if (error) setErr(t(error.message));
     load();
@@ -74,6 +76,7 @@ export default function Trips() {
 
   async function act(fn: string, trip: Trip) {
     setErr("");
+    if (fn !== "flixi_trip_decline_winner" && !(await pingNow(sb))) return setErr(t("Position introuvable : activez la localisation de votre appareil puis réessayez."));
     const { error } = await sb.rpc(fn, { p_trip: trip.id });
     if (error) setErr(t(error.message));
     load();
