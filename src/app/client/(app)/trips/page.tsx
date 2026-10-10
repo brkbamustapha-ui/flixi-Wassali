@@ -5,13 +5,14 @@ import { useSession } from "@/components/Session";
 import { Empty, Spinner, Alert } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
 import TripBidModal, { PublicTrip } from "@/components/TripBidModal";
+import { Stars } from "@/components/RatePanel";
 import { da, departDate } from "@/lib/format";
 import { WILAYAS } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
 type MyBid = {
   id: string; price: number; status: string; goods_type: string; trip_id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string;
-  phase: string; trip_status: string; auction_ends_at: string | null; order_id: string | null; driver_first_name: string; best: number | null;
+  phase: string; trip_status: string; auction_ends_at: string | null; order_id: string | null; driver_first_name: string | null; ref?: string; best: number | null;
 };
 
 function OfferList({ offers, empty, title }: { offers: { price: number; mine: boolean; won: boolean }[]; empty: string; title: string }) {
@@ -76,7 +77,7 @@ export default function ClientTrips() {
             return (
               <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-violet-50/60 p-3 text-sm">
                 <div>
-                  <p className="font-extrabold">{w(m.from_wilaya)} → {w(m.to_wilaya)} · 🚚 {m.driver_first_name}</p>
+                  <p className="font-extrabold">{w(m.from_wilaya)} → {w(m.to_wilaya)} · 🚚 {m.ref ?? t("Transporteur")}</p>
                   <p className="text-xs text-slate-500">🗓 {t("{d} à {h}", { d: date(m.depart_date), h: m.depart_time.slice(0, 5) })} · {t("Mon offre : {p}", { p: da(m.price) })}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -110,7 +111,7 @@ export default function ClientTrips() {
             return (
               <div key={x.id} className="card p-5">
                 <div className="flex items-center justify-between">
-                  <span className="badge bg-violet-100 text-violet-700">🚚 {x.driver_first_name ?? t("Transporteur")}</span>{x.urgent && <span className="badge ms-1 bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}
+                  <span className="badge bg-violet-100 text-violet-700">🚚 {x.ref ?? t("Transporteur")}</span>{(x.rating_count ?? 0) > 0 && <span className="ms-1"><Stars value={x.rating ?? 0} /></span>}{x.urgent && <span className="badge ms-1 bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}
                   <span className="text-xs font-bold text-slate-500">{t(x.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: x.deliveries })}</span>
                 </div>
                 <p className="mt-3 text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)}</p>

@@ -29,3 +29,17 @@ export const distKm = (a: { lat: number; lng: number }, b: { lat: number; lng: n
 };
 /** Wilaya dont le centre est le plus proche du point (approximation pour avertir le client). */
 export const nearestWilaya = (lat: number, lng: number) => WILAYAS.reduce((best, w) => (distKm({ lat, lng }, w) < distKm({ lat, lng }, best) ? w : best), WILAYAS[0]);
+
+/** Wilayas traversées par le trajet A → B (couloir de 60 km autour de la ligne droite), dans l'ordre de A vers B. */
+export function wilayasAlong(a: Wilaya, b: Wilaya, maxKm = 60): Wilaya[] {
+  const k = Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180);
+  const ax = a.lng * 111 * k, ay = a.lat * 111, bx = b.lng * 111 * k, by = b.lat * 111;
+  const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy || 1;
+  return WILAYAS.map((w) => {
+    const px = w.lng * 111 * k, py = w.lat * 111;
+    const t = ((px - ax) * dx + (py - ay) * dy) / len2;
+    const tc = Math.max(0, Math.min(1, t));
+    const d = Math.hypot(px - (ax + tc * dx), py - (ay + tc * dy));
+    return { w, t, d };
+  }).filter((x) => x.t >= -0.02 && x.t <= 1.02 && x.d <= maxKm).sort((x, y) => x.t - y.t).map((x) => x.w);
+}

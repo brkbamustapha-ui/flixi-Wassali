@@ -6,7 +6,7 @@ import { Alert, Empty, Spinner } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
 import { MIN_PRICE, da, departDate, commissionFor, commissionRate } from "@/lib/format";
 import OrderDetails from "@/components/OrderDetails";
-import { WILAYAS } from "@/lib/wilayas";
+import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import type { PublicTrip } from "@/components/TripBidModal";
@@ -61,6 +61,9 @@ export default function Requests() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState("");
   const [online, setOnline] = useState<number | null>(null);
+  const [corr, setCorr] = useState(false);
+  const [ra, setRa] = useState(driver?.wilaya && findWilaya(driver.wilaya) ? driver.wilaya : "Alger");
+  const [rb, setRb] = useState("Oran");
   const approved = driver?.approval === "approved";
 
   const load = useCallback(async () => {
@@ -105,7 +108,9 @@ export default function Requests() {
     load();
   }
 
-  const list = useMemo(() => (orders ?? []).filter((o) => (!from || o.from_wilaya === from) && (!to || o.to_wilaya === to)), [orders, from, to]);
+  // Filtre « adapter à mon trajet » : seules les demandes dont départ ET arrivée sont sur ma route (dans le bon sens)
+  const route = useMemo(() => (corr && findWilaya(ra) && findWilaya(rb) && ra !== rb ? wilayasAlong(findWilaya(ra)!, findWilaya(rb)!).map((x) => x.name) : null), [corr, ra, rb]);
+  const list = useMemo(() => (orders ?? []).filter((o) => (!from || o.from_wilaya === from) && (!to || o.to_wilaya === to) && (!route || (route.indexOf(o.from_wilaya) >= 0 && route.indexOf(o.to_wilaya) >= route.indexOf(o.from_wilaya) && route.indexOf(o.to_wilaya) >= 0))), [orders, from, to, route]);
   const markers = useMemo(() => list.filter((o) => o.from_lat != null).map((o) => ({ lat: o.from_lat!, lng: o.from_lng!, color: "#ff2e7e", emoji: "📦", label: `${t(o.goods_type)} → ${w(o.to_wilaya)} · ${da(o.client_price)}` })), [list, t, w]);
   const tripList = trips.filter((x) => (!from || x.from_wilaya === from) && (!to || x.to_wilaya === to));
 
@@ -127,6 +132,17 @@ export default function Requests() {
         <select className="select" value={to} onChange={(e) => setTo(e.target.value)}><option value="">{t("Arrivée : toutes les wilayas")}</option>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select>
       </div>
 
+      <div className="card space-y-3 p-4">
+        <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" className="h-4 w-4 accent-pink-600" checked={corr} onChange={(e) => setCorr(e.target.checked)} />🧭 {t("Adapter les demandes à mon trajet (là où je veux aller)")}</label>
+        {corr && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <select className="select" value={ra} onChange={(e) => setRa(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{t("Je pars de : {w}", { w: w(x.name) })}</option>)}</select>
+            <select className="select" value={rb} onChange={(e) => setRb(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{t("Je vais à : {w}", { w: w(x.name) })}</option>)}</select>
+            {route && <p className="text-xs font-semibold text-slate-600 sm:col-span-2">{t("Demandes situées sur votre route : {r}", { r: route.map((n) => w(n)).join(" → ") })}</p>}
+          </div>
+        )}
+      </div>
+
       {tab === "orders" && (
         <>
           {markers.length > 0 && <MapView height={260} markers={markers} />}
@@ -141,7 +157,7 @@ export default function Requests() {
                 return (
                   <div key={o.id} className="card p-5">
                     <div className="flex items-start justify-between gap-2">
-                      <div><p className="font-extrabold">{t(o.goods_type)}{o.weight_kg ? ` · ${o.weight_kg} kg` : ""}</p><p className="text-xs text-slate-500">🗓 {o.depart_date ? t("{d} à {h}", { d: date(o.depart_date), h: (o.depart_time ?? "").slice(0, 5) }) : date(o.created_at)}</p></div>
+                      <div><p className="text-xs font-extrabold text-brand-pink">{o.ref}</p><p className="font-extrabold">{t(o.goods_type)}{o.weight_kg ? ` · ${o.weight_kg} kg` : ""}</p><p className="text-xs text-slate-500">🗓 {o.depart_date ? t("{d} à {h}", { d: date(o.depart_date), h: (o.depart_time ?? "").slice(0, 5) }) : date(o.created_at)}</p></div>
                       <div className="flex flex-col items-end gap-1"><span className="badge bg-amber-100 text-amber-800">{t("Prix client : {p}", { p: da(o.client_price) })}</span>{o.urgent && <span className="badge bg-rose-100 text-rose-700">⚡ {t("URGENT")}</span>}</div>
                     </div>
                     <p className="mt-3 text-lg font-extrabold">{w(o.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(o.to_wilaya)}</p>

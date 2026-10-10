@@ -9,6 +9,8 @@ import { Alert, Spinner } from "./ui";
 import { useI18n } from "@/lib/i18n";
 import LangSwitch from "./LangSwitch";
 import EventsHost from "./EventsHost";
+import NotifBell from "./NotifBell";
+import { TermsGate, LocationGuard, BanScreen, TERMS_VERSION } from "./DriverGate";
 import BirthDateField, { isAdult, readBirth } from "./BirthDateField";
 
 type Ctx = { sb: SupabaseClient; profile: Profile; driver: DriverFile | null; refresh: () => Promise<void> };
@@ -77,9 +79,14 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
 
   // Anciens comptes : la date de naissance est obligatoire (19 ans minimum).
   if (!profile.birth_date) return <BirthGate onSaved={load} onLogout={logout} />;
+  // Compte banni (3 annulations en 1 semaine, etc.) : écran dédié avec demande de levée
+  if (profile.status === "suspended" && profile.banned_until) return <BanScreen sb={sb} onLogout={logout} />;
+  // Transporteur : conditions à accepter une seule fois
+  if (role === "driver" && driver && (profile.terms_version ?? 0) < TERMS_VERSION) return <TermsGate sb={sb} onDone={load} onLogout={logout} />;
 
   return (
     <SessionCtx.Provider value={{ sb, profile, driver, refresh: load }}>
+     <GuardWrap on={role === "driver" && !!driver && path !== "/driver/apply"} sb={sb}>
       <div className="min-h-screen pb-24 md:pb-10">
         <header className="sticky top-0 z-30 border-b border-violet-100 bg-white/85 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
@@ -97,6 +104,7 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
             </nav>
             <div className="flex items-center gap-3">
               <span className="hidden text-sm font-bold sm:block">{profile.first_name}</span>
+              <NotifBell sb={sb} role={role} />
               <LangSwitch />
               <button onClick={logout} className="btn btn-ghost !px-3 !py-1.5 text-sm">{t("Quitter")}</button>
             </div>
@@ -118,8 +126,14 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
           })}
         </nav>
       </div>
+     </GuardWrap>
     </SessionCtx.Provider>
   );
+}
+
+/** Localisation obligatoire pour les transporteurs (hors formulaire d'inscription du dossier). */
+function GuardWrap({ on, sb, children }: { on: boolean; sb: SupabaseClient; children: ReactNode }) {
+  return on ? <LocationGuard sb={sb}>{children}</LocationGuard> : <>{children}</>;
 }
 
 /** Écran bloquant pour les comptes créés avant l'ajout de la date de naissance. */

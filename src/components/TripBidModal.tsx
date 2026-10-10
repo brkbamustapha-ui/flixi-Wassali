@@ -9,7 +9,7 @@ import { useI18n } from "@/lib/i18n";
 
 export type PublicTrip = {
   id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; price: number | null; note: string | null;
-  driver_first_name: string | null; urgent?: boolean; vehicle_type: string; deliveries: number; phase: string; round: number; offers: { price: number; mine: boolean; won: boolean }[];
+  driver_first_name: string | null; ref?: string; rating?: number; rating_count?: number; urgent?: boolean; vehicle_type: string; deliveries: number; phase: string; round: number; offers: { price: number; mine: boolean; won: boolean }[];
   is_mine: boolean; best: number | null; bids: number; my_bid: { price: number; status: string } | null;
 };
 

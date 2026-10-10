@@ -50,12 +50,12 @@ export default function ClientHome() {
           <div key={k} className="card p-4 text-center"><p className="grad-text text-3xl font-extrabold">{v}</p><p className="text-xs font-bold text-slate-500">{k}</p></div>
         ))}
       </div>
-      <h2 className="text-xl font-extrabold">{t("Mes commandes")}</h2>
+      <div className="flex items-center justify-between"><h2 className="text-xl font-extrabold">{t("Mes commandes")}</h2><Link href="/client/history" className="text-sm font-bold text-brand-pink">🕘 {t("Historique")} →</Link></div>
       {orders.length === 0 ? (
         <Empty icon="📦" title={t("Aucune commande pour le moment")} text={t("Publiez votre première marchandise pour recevoir des offres.")} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {orders.map((o) => {
+          {orders.filter((o) => ["open", "matched", "in_transit"].includes(o.status)).map((o) => {
             const ob = bids.filter((b) => b.order_id === o.id);
             const best = ob.length ? Math.min(...ob.map((b) => b.price)) : null;
             const st = ORDER_STATUS[o.status];
@@ -63,6 +63,7 @@ export default function ClientHome() {
               <Link key={o.id} href={`/client/orders/${o.id}`} className="card p-5 transition hover:-translate-y-0.5">
                 <div className="flex items-start justify-between gap-2">
                   <div>
+                    <p className="text-xs font-extrabold text-brand-pink">{o.ref}</p>
                     <p className="font-extrabold">{t(o.goods_type)}</p>
                     <p className="text-xs text-slate-500">{date(o.created_at)}</p>
                   </div>

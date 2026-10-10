@@ -4,6 +4,7 @@ const nav = [
   { href: "/driver", label: "Accueil", icon: "🏠" },
   { href: "/driver/requests", label: "Demandes", icon: "📦" },
   { href: "/driver/trips", label: "Mes trajets", icon: "🗓" },
+  { href: "/driver/earnings", label: "Gains", icon: "💰" },
   { href: "/driver/commissions", label: "Commissions", icon: "💳" },
   { href: "/driver/account", label: "Compte", icon: "👤" },
 ];

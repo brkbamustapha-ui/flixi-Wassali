@@ -42,6 +42,10 @@ export default function Conditions() {
               <li>{t("Un Utilisateur ne peut pas modifier son profil lui-même : toute modification n'est possible qu'avec l'accord de l'Éditeur.")}</li>
               <li><b>{t("Vérification des Transporteurs :")}</b> {t("tout Transporteur s'engage à fournir à l'Éditeur les documents légaux requis en cours de validité (permis de conduire, carte grise, contrôle technique, assurance du véhicule, registre de commerce / NIF ou agrément le cas échéant), ainsi qu'un selfie et les photos et le matricule du véhicule.")}</li>
               <li>{t("Le Transporteur s'engage à laisser sa localisation activée pendant toute la livraison afin que la marchandise soit suivie, et assume l'entière responsabilité de la marchandise transportée depuis la prise en charge jusqu'à la livraison.")}</li>
+              <li>{t("Le Transporteur accepte ces conditions à sa première connexion (une seule fois) et peut les relire à tout moment depuis son compte.")}</li>
+              <li>{t("La localisation doit être activée et rester activée en permanence : sans elle, le Transporteur ne peut ni enchérir ni accepter une commande, et ne peut pas la désactiver une fois la course acceptée.")}</li>
+              <li>{t("Le Client modifie son profil librement. Le Transporteur modifie ses informations puis envoie une demande de modification, appliquée seulement après accord de l'Éditeur.")}</li>
+              <li>{t("Chaque numéro de téléphone ou e-mail ajouté ou modifié est confirmé par un code envoyé automatiquement par SMS ou par e-mail.")}</li>
               <li>{t("Refuser ces conditions rend l'ouverture d'un compte impossible.")}</li>
             </ul></section>
 
@@ -66,7 +70,11 @@ export default function Conditions() {
           <section><h2 className={H}>{t("Article 6 : Enchères et courses urgentes")}</h2>
             <ul className="list-disc space-y-1 ps-5">
               <li>{t("Tous les Transporteurs en ligne peuvent enchérir sur une demande ; toutes les offres sont visibles, sans le nom des autres Transporteurs. Le Transporteur ne voit pas le nom du Client.")}</li>
-              <li>{t("Le Client choisit la durée de l'enchère, ou la termine lui-même quand il le souhaite. Pour un trajet annoncé par un Transporteur, c'est le Transporteur qui termine l'enchère.")}</li>
+              <li>{t("Le Client choisit librement le Transporteur qui effectue la course parmi les offres reçues, pas nécessairement le moins cher. Pour un trajet annoncé par un Transporteur, c'est le Transporteur qui choisit le Client.")}</li>
+              <li>{t("Le Client choisit la durée de l'enchère, ou la termine lui-même quand il le souhaite.")}</li>
+              <li>{t("Dans les annonces, aucun nom n'est affiché : chaque commande ou trajet porte une référence. Les noms et numéros ne sont visibles qu'une fois la commande confirmée, et une messagerie s'ouvre alors entre le Client et le Transporteur.")}</li>
+              <li>{t("L'historique des courses terminées reste consultable, sans le nom, le prénom ni le numéro de l'autre partie.")}</li>
+              <li>{t("Un Transporteur ayant déjà une course d'un point A à un point B peut annoncer un trajet entre deux points situés sur cet itinéraire, s'il lui reste de la place dans son véhicule.")}</li>
               <li>{t("Une course dont le départ est dans moins de 2 heures est « urgente » (ou « express » pour un trajet) : elle est mise en avant afin que les Transporteurs puissent l'activer et que le Client profite d'un prix bas.")}</li>
             </ul></section>
 
@@ -75,8 +83,12 @@ export default function Conditions() {
               <li><b>{t("Client :")}</b> {t("le Client peut annuler une course conclue s'il reste plus de 24 heures avant le départ. En dessous de 24 heures, il doit demander l'annulation avec un motif et le Transporteur doit l'accepter.")}</li>
               <li><b>{t("Transporteur :")}</b> {t("une fois la course acceptée, le Transporteur ne peut l'annuler librement que s'il reste plus de 24 heures avant le départ. En dessous de 24 heures, il doit donner une justification que le Client voit, et c'est au Client d'accepter l'annulation. L'Éditeur reçoit une alerte sur chaque annulation et en assure le suivi.")}</li>
               <li><b>{t("Déplacement sans chargement :")}</b> {t("si le Transporteur se déplace chez le Client et que celui-ci, pour quelque raison que ce soit, ne lui charge pas la marchandise, le Client doit payer 10 % de la somme du transport. S'il refuse, le Transporteur le signale dans l'application : après vérification, le Client reçoit un avertissement.")}</li>
+              <li><b>{t("Bannissement automatique :")}</b> {t("un Transporteur qui annule 3 courses en moins d'une semaine est banni pendant 1 semaine ; son adresse IP est associée au bannissement. Il peut envoyer une demande de levée, et l'Éditeur décide de maintenir ou de lever le bannissement.")}</li>
               <li><b>{t("Avertissements :")}</b> {t("tout manquement (annulation abusive sans accord, refus de payer, etc.) donne lieu à un avertissement. Au bout de 2 avertissements, le compte est banni.")}</li>
             </ul></section>
+
+          <section><h2 className={H}>{t("Article 7 bis : Notation et avis")}</h2>
+            <p>{t("Après chaque course livrée, le Client note le Transporteur et le Transporteur note le Client par étoiles (de 1 à 5), avec un avis facultatif. Les notes moyennes sont visibles des autres utilisateurs.")}</p></section>
 
           <section><h2 className={H}>{t("Article 8 : Protection des données personnelles")}</h2>
             <p>{t("L'Éditeur collecte et traite les données personnelles des Utilisateurs (nom, téléphone, données de géolocalisation, etc.) dans le strict respect de la réglementation algérienne relative à la protection des personnes physiques dans le traitement des données à caractère personnel (Loi n° 18-07). Ces données sont utilisées exclusivement pour le bon fonctionnement du service de mise en relation.")}</p>

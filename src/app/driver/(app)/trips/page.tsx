@@ -5,13 +5,15 @@ import { useSession } from "@/components/Session";
 import { Alert, Empty, Field, Spinner } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
 import { MIN_PRICE, auctionPreview, da, departDate, commissionFor } from "@/lib/format";
-import { WILAYAS } from "@/lib/wilayas";
+import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
+import { ORDER_COLS, type Order } from "@/lib/supabase";
+import { Stars } from "@/components/RatePanel";
 import { useI18n } from "@/lib/i18n";
 
-type TBid = { id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null; client_first_name: string };
+type TBid = { id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null; alias: string; rating: number; rating_count: number };
 type Trip = {
   id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; price: number | null; note: string | null;
-  status: string; phase: string; urgent?: boolean; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
+  ref?: string; parent_order_id?: string | null; status: string; phase: string; urgent?: boolean; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
 };
 
 export default function Trips() {
@@ -20,6 +22,10 @@ export default function Trips() {
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [active, setActive] = useState<Order[]>([]);
+  const [parent, setParent] = useState("");
+  const [fSel, setFSel] = useState("");
+  const [tSel, setTSel] = useState("");
   const [dDate, setDDate] = useState("");
   const [dTime, setDTime] = useState("08:00");
   const today = new Date().toISOString().slice(0, 10);
@@ -28,7 +34,9 @@ export default function Trips() {
   const load = useCallback(async () => {
     const { data } = await sb.rpc("flixi_my_trips_overview");
     setTrips((data as Trip[]) ?? []);
-  }, [sb]);
+    const { data: ao } = await sb.from("flixi_orders").select(ORDER_COLS).eq("driver_id", profile.id).in("status", ["matched", "in_transit"]);
+    setActive((ao as unknown as Order[]) ?? []);
+  }, [sb, profile.id]);
   useEffect(() => { load(); const i = setInterval(load, 10000); return () => clearInterval(i); }, [load]);
 
   async function add(e: FormEvent<HTMLFormElement>) {
@@ -38,18 +46,30 @@ export default function Trips() {
     const f = new FormData(form);
     const price = f.get("price") ? Number(f.get("price")) : null;
     if (f.get("from") === f.get("to")) return setErr(t("Choisissez deux wilayas différentes."));
+    if (pOrder) {
+      const names = corridor.map((x) => x.name);
+      if (names.indexOf(String(f.get("from"))) > names.indexOf(String(f.get("to")))) return setErr(t("Le départ doit précéder l'arrivée sur le trajet de votre course."));
+    }
     if (price !== null && (!Number.isInteger(price) || price < MIN_PRICE)) return setErr(t("Indiquez un prix valide (nombre entier en DA)."));
     if (!preview) return setErr(t("Choisissez la date et l'heure de départ."));
     if (!preview.ok) return setErr(t("Le départ doit être dans au moins 10 minutes."));
     setBusy(true);
     const { error } = await sb.from("flixi_trips").insert({
       driver_id: profile.id, from_wilaya: String(f.get("from")), to_wilaya: String(f.get("to")),
-      depart_date: dDate, depart_time: dTime, price, note: String(f.get("note") || "") || null,
+      depart_date: dDate, depart_time: dTime, price, note: String(f.get("note") || "") || null, parent_order_id: parent || null,
     });
     setBusy(false);
     if (error) return setErr(t(error.message));
-    form.reset(); setDDate(""); setDTime("08:00");
+    form.reset(); setDDate(""); setDTime("08:00"); setParent(""); setFSel(""); setTSel("");
     load();
+  }
+
+  async function chooseBid(id: string) {
+    setErr("");
+    const { error } = await sb.rpc("flixi_trip_choose_bid", { p_bid: id });
+    if (error) setErr(t(error.message));
+    load();
+    window.dispatchEvent(new Event("flixi:poll"));
   }
 
   async function act(fn: string, trip: Trip) {
@@ -62,6 +82,8 @@ export default function Trips() {
 
   if (!trips) return <Spinner />;
   const approved = driver?.approval === "approved";
+  const pOrder = active.find((o) => o.id === parent);
+  const corridor = pOrder ? wilayasAlong(findWilaya(pOrder.from_wilaya)!, findWilaya(pOrder.to_wilaya)!) : WILAYAS;
   const live = trips.filter((x) => x.status === "open");
   const past = trips.filter((x) => x.status !== "open");
 
@@ -71,8 +93,17 @@ export default function Trips() {
         <h1 className="text-xl font-extrabold">{t("Annoncer un trajet")}</h1>
         <p className="text-sm text-slate-500">{t("Les clients voient votre trajet et enchérissent : le prix le plus élevé gagne quand vous terminez l'enchère, puis vous acceptez ou refusez.")}</p>
         {!approved && <Alert kind="info">{t("Disponible après l'approbation de votre dossier.")}</Alert>}
-        <Field label={t("Wilaya de départ")}><select name="from" className="select">{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
-        <Field label={t("Wilaya de destination")}><select name="to" defaultValue="Oran" className="select">{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
+        {active.length > 0 && (
+          <Field label={"🚛 " + t("Place restante dans le véhicule (facultatif)")} hint={t("Annoncez un trajet entre deux points de votre course en cours, seulement si vous passez par les deux.")}>
+            <select className="select" value={parent} onChange={(e) => { setParent(e.target.value); setFSel(""); setTSel(""); }}>
+              <option value="">{t("Non — trajet indépendant")}</option>
+              {active.map((o) => <option key={o.id} value={o.id}>{o.ref} · {w(o.from_wilaya)} → {w(o.to_wilaya)}</option>)}
+            </select>
+          </Field>
+        )}
+        <Field label={t("Wilaya de départ")}><select name="from" className="select" value={fSel || corridor[0]?.name || "Alger"} onChange={(e) => setFSel(e.target.value)}>{corridor.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
+        <Field label={t("Wilaya de destination")}><select name="to" className="select" value={tSel || (parent ? corridor[corridor.length - 1]?.name : "Oran") || "Oran"} onChange={(e) => setTSel(e.target.value)}>{corridor.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
+        {parent && <Alert kind="info">{t("Seules les wilayas situées sur le trajet de votre course sont proposées, dans le sens du trajet.")}</Alert>}
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("Jour de départ")}><input type="date" min={today} required value={dDate} onChange={(e) => setDDate(e.target.value)} className="input" dir="ltr" /></Field>
           <Field label={t("Heure de départ")}><input type="time" required value={dTime} onChange={(e) => setDTime(e.target.value)} className="input" dir="ltr" /></Field>
@@ -95,7 +126,7 @@ export default function Trips() {
             <div key={x.id} className="card space-y-3 p-5">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)} {x.urgent && <span className="badge bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}</p>
+                  <p className="text-xs font-extrabold text-brand-pink">{x.ref}</p><p className="text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)} {x.urgent && <span className="badge bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}</p>
                   <p className="text-sm text-slate-600">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}{x.price ? ` · ${t("Prix annoncé : {p}", { p: da(x.price) })}` : ""}</p>
                 </div>
                 <button className="btn btn-danger !px-3 !py-1 text-xs" onClick={async () => { await sb.from("flixi_trips").update({ status: "closed" }).eq("id", x.id); load(); }}>{t("Fermer")}</button>
@@ -123,8 +154,8 @@ export default function Trips() {
                 <div className="space-y-1.5">
                   {x.bids.map((b, i) => (
                     <div key={b.id} className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5 text-sm ${b.status === "won" ? "border-brand-pink" : i === 0 ? "border-emerald-300 bg-emerald-50/50" : "border-violet-100"}`}>
-                      <span><b>👤 {t("Client")} {i + 1}</b> <span className="text-xs text-slate-500">· {t(b.goods_type)}{b.weight_kg ? ` · ${b.weight_kg} kg` : ""}</span></span>
-                      <span className="flex items-center gap-2"><b className="text-base">{da(b.price)}</b>{i === 0 && x.phase === "bidding" && <span className="badge bg-emerald-100 text-emerald-700">{t("Meilleur prix")}</span>}</span>
+                      <span><b>👤 {t("Client")} {b.alias}</b> {b.rating_count > 0 && <Stars value={b.rating} />} <span className="text-xs text-slate-500">· {t(b.goods_type)}{b.weight_kg ? ` · ${b.weight_kg} kg` : ""}</span></span>
+                      <span className="flex items-center gap-2">{x.phase !== "booked" && <button onClick={() => chooseBid(b.id)} className="btn btn-primary !px-3 !py-1 text-xs">✔ {t("Choisir")}</button>}<b className="text-base">{da(b.price)}</b>{i === 0 && x.phase === "bidding" && <span className="badge bg-emerald-100 text-emerald-700">{t("Meilleur prix")}</span>}</span>
                     </div>
                   ))}
                 </div>

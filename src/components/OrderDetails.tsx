@@ -22,7 +22,10 @@ export default function OrderDetails({ order, sb }: { order: Order; sb: Supabase
   return (
     <div className="mt-3 space-y-2 text-sm">
       <div className="flex flex-wrap gap-2">
-        <span className="badge bg-violet-100 text-violet-700">🏋 {order.handling ? t("Avec manutention") : t("Sans manutention")}</span>
+        <span className="badge bg-violet-100 text-violet-700">🏋 {order.handlers_count ? t("{n} manutentionnaire(s) nécessaire(s)", { n: order.handlers_count }) : t("Sans manutention")}</span>
+        {order.handlers_count ? <span className="badge bg-amber-100 text-amber-800">{order.driver_brings_handlers ? t("Le chauffeur amène les manutentionnaires") : t("Manutentionnaires fournis par le client")}</span> : null}
+        {order.floor_no != null && <span className="badge bg-slate-100 text-slate-700">🏢 {order.floor_no === 0 ? t("Rez-de-chaussée") : t("Étage {n}", { n: order.floor_no })}</span>}
+        {(order.from_commune || order.to_commune) && <span className="badge bg-sky-50 text-sky-700">📍 {order.from_commune ?? "—"} → {order.to_commune ?? "—"}</span>}
         {order.vehicle_wanted && <span className="badge bg-sky-100 text-sky-700">🚚 {t(order.vehicle_wanted)}</span>}
         {order.want_arrival_date && <span className="badge bg-emerald-100 text-emerald-700">🏁 {t("Arrivée souhaitée : {d}", { d: `${date(order.want_arrival_date)}${order.want_arrival_time ? ` ${order.want_arrival_time.slice(0, 5)}` : ""}` })}</span>}
       </div>

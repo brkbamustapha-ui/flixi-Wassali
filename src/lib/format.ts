@@ -29,8 +29,8 @@ export const GOODS_TYPES = [
 ];
 
 export const VEHICLE_TYPES = [
-  "Camionnette (Berlingo, Kangoo…)", "Fourgon (Master, Sprinter…)", "Camion léger (3-5 t)", "Camion (10 t)",
-  "Semi-remorque", "Plateau / Benne", "Camion frigorifique", "Autre",
+  "Moto / Scooter", "Voiture (véhicule normal)", "Camionnette (Berlingo, Kangoo…)", "Fourgon (Master, Sprinter…)", "Camion léger (3-5 t)", "Camion (10 t)",
+  "Semi-remorque", "Plateau / Benne", "Camion frigorifique", "Dépanneuse (dépannage)", "Porte-char", "Autre",
 ];
 
 export const PAY_METHODS: Record<string, string> = {

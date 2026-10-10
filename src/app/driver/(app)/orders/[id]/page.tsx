@@ -7,6 +7,8 @@ import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
 import { ORDER_STATUS, phoneDigits, hoursUntil, CANCEL_FREE_HOURS } from "@/lib/format";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import OrderDetails from "@/components/OrderDetails";
+import OrderChat from "@/components/OrderChat";
+import RatePanel from "@/components/RatePanel";
 import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
@@ -27,6 +29,7 @@ export default function DriverOrder() {
   const [mode, setMode] = useState<"" | "cancel" | "goods" | "noshow">("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [cancels, setCancels] = useState(0);
 
   const load = useCallback(async () => {
     const { data: o } = await sb.from("flixi_orders").select(ORDER_COLS).eq("id", id).maybeSingle();
@@ -36,6 +39,7 @@ export default function DriverOrder() {
     setContacts(c as Contacts | null);
   }, [sb, id, router]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { sb.rpc("flixi_my_cancel_count").then(({ data }) => typeof data === "number" && setCancels(data)); }, [sb, order?.status]);
 
   const tracking = order && ["matched", "in_transit"].includes(order.status);
   useEffect(() => {
@@ -101,6 +105,7 @@ export default function DriverOrder() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-bold text-slate-500">{t(order.goods_type)}{order.weight_kg ? ` · ${order.weight_kg} kg` : ""}</p>
+              <p className="text-xs font-extrabold text-brand-pink">{order.ref}</p>
               <h1 className="mt-1 text-2xl font-extrabold">{w(order.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(order.to_wilaya)}</h1>
               <p className="mt-1 text-sm text-slate-500">{order.from_address || "—"} → {order.to_address || "—"}</p>
               {order.description && <p className="mt-2 text-sm">{order.description}</p>}
@@ -152,6 +157,7 @@ export default function DriverOrder() {
               </div>
               {mode && (
                 <div className="rounded-xl bg-white p-3">
+                  {mode === "cancel" && <Alert>⚠ {t("Règle : 3 annulations en moins d'une semaine entraînent un bannissement d'une semaine (avec votre adresse IP). Annulations cette semaine : {n}/3.", { n: cancels })}</Alert>}
                   <p className="font-bold">
                     {mode === "cancel" && (hoursUntil(order.depart_date, order.depart_time) > CANCEL_FREE_HOURS
                       ? t("Plus de 24 h avant le départ : vous pouvez annuler. Votre justification est transmise au client et à l'équipe.")
@@ -170,10 +176,14 @@ export default function DriverOrder() {
           )}
         </div>
       </div>
-      <div className="card space-y-3 p-4 lg:col-span-2 lg:sticky lg:top-24 lg:self-start">
-        <p className="font-extrabold">{t("Itinéraire")} {tracking && <span className="badge ms-2 bg-emerald-100 text-emerald-700">● {t("GPS actif")}</span>}</p>
-        <MapView height={360} markers={markers} line={markers.filter((m) => m.emoji !== "🚚").map((m) => [m.lat, m.lng] as [number, number])} />
-        {tracking && <p className="text-xs text-slate-500">{t("Gardez cette page ouverte et la localisation activée : le client suit votre position en direct.")}</p>}
+      <div className="space-y-5 lg:col-span-2 lg:sticky lg:top-24 lg:self-start">
+        <div className="card space-y-3 p-4">
+          <p className="font-extrabold">{t("Itinéraire")} {tracking && <span className="badge ms-2 bg-emerald-100 text-emerald-700">● {t("GPS actif")}</span>}</p>
+          <MapView height={360} markers={markers} line={markers.filter((m) => m.emoji !== "🚚").map((m) => [m.lat, m.lng] as [number, number])} />
+          {tracking && <p className="text-xs text-slate-500">{t("Gardez cette page ouverte et la localisation activée : le client suit votre position en direct.")}</p>}
+        </div>
+        {["matched", "in_transit", "delivered"].includes(order.status) && <OrderChat sb={sb} orderId={id} open={order.status !== "delivered"} />}
+        {order.status === "delivered" && <RatePanel sb={sb} orderId={id} who="driver" />}
       </div>
     </div>
   );

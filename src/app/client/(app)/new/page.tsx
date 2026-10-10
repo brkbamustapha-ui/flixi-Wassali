@@ -7,6 +7,8 @@ import { Alert, Field, PriceBreakdown } from "@/components/ui";
 import { GOODS_TYPES, VEHICLE_TYPES, AUCTION_HOURS, MIN_PRICE, auctionPreview } from "@/lib/format";
 import { compressImage } from "@/lib/images";
 import { WILAYAS, findWilaya, wilayaLabel, nearestWilaya, distKm } from "@/lib/wilayas";
+import CommunePicker from "@/components/CommunePicker";
+import { geocodeCommune, reverseCommune, matchCommune, norm, type Commune } from "@/lib/geo";
 import { useI18n } from "@/lib/i18n";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[340px] animate-pulse rounded-2xl bg-violet-100" /> });
@@ -29,7 +31,15 @@ export default function NewOrder() {
   const [price, setPrice] = useState("");
   const [dDate, setDDate] = useState("");
   const [dTime, setDTime] = useState("08:00");
-  const [handling, setHandling] = useState(false);
+  const [handlers, setHandlers] = useState("0");
+  const [floor, setFloor] = useState("");
+  const [bring, setBring] = useState(false);
+  const [fromCom, setFromCom] = useState("");
+  const [toCom, setToCom] = useState("");
+  const [fromList, setFromList] = useState<Commune[]>([]);
+  const [toList, setToList] = useState<Commune[]>([]);
+  const [focus, setFocus] = useState<{ lat: number; lng: number; zoom?: number; key?: string | number } | null>(null);
+  const [mapWarn, setMapWarn] = useState<{ from?: string; to?: string }>({});
   const [dims, setDims] = useState({ l: "", w: "", h: "" });
   const [img, setImg] = useState<string | null>(null);
   const [arrDate, setArrDate] = useState("");
@@ -44,8 +54,8 @@ export default function NewOrder() {
     if (q.get("from") && findWilaya(q.get("from"))) setFrom(q.get("from")!);
     if (q.get("to") && findWilaya(q.get("to"))) setTo(q.get("to")!);
   }, []);
-  useEffect(() => setFromPt(null), [from]);
-  useEffect(() => setToPt(null), [to]);
+  useEffect(() => { setFromPt(null); setFromCom(""); setMapWarn((m) => ({ ...m, from: undefined })); }, [from]);
+  useEffect(() => { setToPt(null); setToCom(""); setMapWarn((m) => ({ ...m, to: undefined })); }, [to]);
 
   const wf = findWilaya(from)!, wt = findWilaya(to)!;
   const a = fromPt ?? { lat: wf.lat, lng: wf.lng };
@@ -56,9 +66,30 @@ export default function NewOrder() {
   const today = new Date().toISOString().slice(0, 10);
 
   const markers = useMemo(() => [
-    { ...a, color: "#ff7a1a", emoji: "📍", label: t("Départ : {w}", { w: w(from) }) },
-    { ...b, color: "#7b3ff2", emoji: "🏁", label: t("Arrivée : {w}", { w: w(to) }) },
+    { ...a, color: "#ff7a1a", emoji: "📍", label: t("Départ : {w}", { w: w(from) }), onDrag: (lat: number, lng: number) => { setPlacing("from"); setFromPt({ lat, lng }); } },
+    { ...b, color: "#7b3ff2", emoji: "🏁", label: t("Arrivée : {w}", { w: w(to) }), onDrag: (lat: number, lng: number) => { setPlacing("to"); setToPt({ lat, lng }); } },
   ], [a.lat, a.lng, b.lat, b.lng, from, to]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Commune choisie -> la carte se centre dessus (synchronisation liste <-> carte)
+  async function pickCommune(side: "from" | "to", c: string) {
+    (side === "from" ? setFromCom : setToCom)(c);
+    setMapWarn((m) => ({ ...m, [side]: undefined }));
+    const wil = side === "from" ? wf : wt;
+    const pt = c ? await geocodeCommune(c, wil.name) : null;
+    if (pt) { (side === "from" ? setFromPt : setToPt)(pt); setPlacing(side); setFocus({ ...pt, zoom: 13, key: `${side}:${c}` }); }
+  }
+  // Point posé sur la carte -> on retrouve la commune ; on prévient si elle est hors de la wilaya choisie
+  async function pickOnMap(lat: number, lng: number) {
+    const side = placing, wil = side === "from" ? wf : wt, list = side === "from" ? fromList : toList;
+    (side === "from" ? setFromPt : setToPt)({ lat, lng });
+    const rev = await reverseCommune(lat, lng);
+    if (!rev) return;
+    const stateOk = !rev.state || norm(rev.state).includes(norm(wil.name)) || norm(wil.name).includes(norm(rev.state));
+    if (!stateOk) return setMapWarn((m) => ({ ...m, [side]: t("Ce point est dans la wilaya de {a}, pas {b}.", { a: rev.state ?? "?", b: w(wil.name) }) }));
+    const found = matchCommune(list, rev.commune);
+    setMapWarn((m) => ({ ...m, [side]: undefined }));
+    if (found) (side === "from" ? setFromCom : setToCom)(found[0]);
+  }
 
   // Avertissement : le point choisi sur la carte semble hors de la wilaya indiquée
   const outside = (pt: Pt, wil: { name: string; lat: number; lng: number }) => {
@@ -83,7 +114,8 @@ export default function NewOrder() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setErr("");
-    if (from === to && !fromAddr) return setErr(t("Départ et arrivée sont dans la même wilaya : précisez les adresses."));
+    if (!fromCom || !toCom) return setErr(t("Choisissez la commune de départ et la commune d'arrivée."));
+    if (from === to && fromCom === toCom && !fromAddr) return setErr(t("Départ et arrivée sont dans la même commune : précisez les adresses."));
     if (!priceOk) return setErr(t("Indiquez un prix valide (nombre entier en DA)."));
     if (!preview) return setErr(t("Choisissez la date et l'heure de départ."));
     if (!preview.ok) return setErr(t("Le départ doit être dans au moins 10 minutes."));
@@ -93,7 +125,8 @@ export default function NewOrder() {
       client_id: profile.id, goods_type: goods, description: desc || null, weight_kg: weight ? Number(weight) : null,
       from_wilaya: from, from_address: fromAddr || null, from_lat: a.lat, from_lng: a.lng,
       to_wilaya: to, to_address: toAddr || null, to_lat: b.lat, to_lng: b.lng, client_price: priceN, depart_date: dDate, depart_time: dTime,
-      handling, goods_img: img, length_cm: dims.l ? Number(dims.l) : null, width_cm: dims.w ? Number(dims.w) : null, height_cm: dims.h ? Number(dims.h) : null,
+      handling: Number(handlers) > 0, handlers_count: Number(handlers) || 0, floor_no: floor !== "" ? Number(floor) : null, driver_brings_handlers: Number(handlers) > 0 && bring,
+      from_commune: fromCom, to_commune: toCom, goods_img: img, length_cm: dims.l ? Number(dims.l) : null, width_cm: dims.w ? Number(dims.w) : null, height_cm: dims.h ? Number(dims.h) : null,
       want_arrival_date: arrDate || null, want_arrival_time: arrDate && arrTime ? arrTime : null, vehicle_wanted: vehicle || null, auction_hours: hours ? Number(hours) : null,
     }).select("id").single();
     if (error) { setBusy(false); return setErr(t(error.message)); }
@@ -114,7 +147,14 @@ export default function NewOrder() {
           <Field label={t("Largeur (cm)")}><input className="input" type="number" min={1} value={dims.w} onChange={(e) => setDims({ ...dims, w: e.target.value })} dir="ltr" /></Field>
           <Field label={t("Hauteur (cm)")}><input className="input" type="number" min={1} value={dims.h} onChange={(e) => setDims({ ...dims, h: e.target.value })} dir="ltr" /></Field>
         </div>
-        <label className="flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2.5 text-sm font-bold"><input type="checkbox" className="h-4 w-4 accent-pink-600" checked={handling} onChange={(e) => setHandling(e.target.checked)} />🏋 {t("Avec manutention (le transporteur aide à charger / décharger)")}</label>
+        <div className="space-y-3 rounded-2xl bg-violet-50 p-4">
+          <p className="text-sm font-extrabold">🏋 {t("Manutention (chargement / déchargement)")}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label={t("Nombre de manutentionnaires nécessaires")} hint={t("0 = aucune manutention.")}><input className="input" type="number" min={0} max={20} value={handlers} onChange={(e) => setHandlers(e.target.value)} dir="ltr" /></Field>
+            <Field label={t("Étage où se trouve la marchandise")} hint={t("0 = rez-de-chaussée. Laissez vide si sans objet.")}><input className="input" type="number" min={-3} max={60} value={floor} onChange={(e) => setFloor(e.target.value)} dir="ltr" /></Field>
+          </div>
+          {Number(handlers) > 0 && <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" className="h-4 w-4 accent-pink-600" checked={bring} onChange={(e) => setBring(e.target.checked)} />{t("Le chauffeur amène les manutentionnaires avec lui")}</label>}
+        </div>
         <label className={`block cursor-pointer rounded-2xl border-2 border-dashed p-3 text-center transition ${img ? "border-emerald-300 bg-emerald-50" : "border-violet-200 hover:border-brand-pink"}`}>
           {img
             // eslint-disable-next-line @next/next/no-img-element
@@ -127,10 +167,12 @@ export default function NewOrder() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-3 rounded-2xl bg-orange-50/60 p-4">
             <Field label={"📍 " + t("Wilaya de départ")}><select className="select" value={from} onChange={(e) => setFrom(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{wilayaLabel(x, lang)}</option>)}</select></Field>
+            <CommunePicker code={wf.code} value={fromCom} onChange={(c) => pickCommune("from", c)} onList={setFromList} label={t("Commune de départ")} />
             <Field label={t("Adresse de départ")}><input className="input" value={fromAddr} onChange={(e) => setFromAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
           </div>
           <div className="space-y-3 rounded-2xl bg-violet-50 p-4">
             <Field label={"🏁 " + t("Wilaya d'arrivée")}><select className="select" value={to} onChange={(e) => setTo(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{wilayaLabel(x, lang)}</option>)}</select></Field>
+            <CommunePicker code={wt.code} value={toCom} onChange={(c) => pickCommune("to", c)} onList={setToList} label={t("Commune d'arrivée")} />
             <Field label={t("Adresse d'arrivée")}><input className="input" value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
           </div>
         </div>
@@ -165,11 +207,13 @@ export default function NewOrder() {
           <button type="button" onClick={() => setPlacing("from")} className={`rounded-xl border-2 py-2 ${placing === "from" ? "border-brand-orange bg-orange-50" : "border-transparent bg-slate-50"}`}>📍 {t("Placer le départ")}</button>
           <button type="button" onClick={() => setPlacing("to")} className={`rounded-xl border-2 py-2 ${placing === "to" ? "border-brand-violet bg-violet-50" : "border-transparent bg-slate-50"}`}>🏁 {t("Placer l'arrivée")}</button>
         </div>
-        <MapView height={340} markers={markers} line={[[a.lat, a.lng], [b.lat, b.lng]]} onPick={(lat, lng) => (placing === "from" ? setFromPt : setToPt)({ lat, lng })} />
+        <MapView height={420} markers={markers} line={[[a.lat, a.lng], [b.lat, b.lng]]} onPick={pickOnMap} focus={focus} />
         <button type="button" onClick={locate} className="btn btn-ghost w-full text-sm">🎯 {t("Utiliser ma position actuelle")}</button>
         <p className="text-xs text-slate-500">{t("Cliquez sur la carte pour préciser l'adresse exacte du point choisi.")}</p>
-        {fromOut && <Alert>⚠ {t("Le point de départ placé sur la carte semble être dans la wilaya de {a}, et non {b}. Vérifiez votre choix.", { a: w(fromOut.name), b: w(from) })}</Alert>}
-        {toOut && <Alert>⚠ {t("Le point d'arrivée placé sur la carte semble être dans la wilaya de {a}, et non {b}. Vérifiez votre choix.", { a: w(toOut.name), b: w(to) })}</Alert>}
+        {mapWarn.from && <Alert>⚠ {mapWarn.from}</Alert>}
+        {mapWarn.to && <Alert>⚠ {mapWarn.to}</Alert>}
+        {fromOut && !mapWarn.from && <Alert>⚠ {t("Le point de départ placé sur la carte semble être dans la wilaya de {a}, et non {b}. Vérifiez votre choix.", { a: w(fromOut.name), b: w(from) })}</Alert>}
+        {toOut && !mapWarn.to && <Alert>⚠ {t("Le point d'arrivée placé sur la carte semble être dans la wilaya de {a}, et non {b}. Vérifiez votre choix.", { a: w(toOut.name), b: w(to) })}</Alert>}
       </div>
     </form>
   );

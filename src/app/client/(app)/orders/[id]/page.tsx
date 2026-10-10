@@ -8,12 +8,14 @@ import { AuctionBanner } from "@/components/Countdown";
 import { ORDER_STATUS, da, phoneDigits, departDate, hoursUntil, CANCEL_FREE_HOURS } from "@/lib/format";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import OrderDetails from "@/components/OrderDetails";
+import OrderChat from "@/components/OrderChat";
+import RatePanel, { Stars } from "@/components/RatePanel";
 import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[340px] animate-pulse rounded-2xl bg-violet-100" /> });
 
-type Bid = { id: string; price: number; note: string | null; status: string; driver_first_name: string; vehicle_type: string; wilaya: string | null; deliveries: number };
+type Bid = { id: string; price: number; note: string | null; status: string; alias: string; vehicle_type: string; wilaya: string | null; deliveries: number; rating: number; rating_count: number; loc_ok: boolean };
 type Contacts = { client: { name: string; phone: string }; driver: { name: string; phone: string; vehicle_type: string; plate_number: string } };
 type Loc = { lat: number; lng: number; updated_at: string } | null;
 
@@ -93,6 +95,7 @@ export default function ClientOrder() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-bold text-slate-500">{t(order.goods_type)}{order.weight_kg ? ` · ${order.weight_kg} kg` : ""}</p>
+              <p className="text-xs font-extrabold text-brand-pink">{order.ref}</p>
               <h1 className="mt-1 text-2xl font-extrabold">{w(order.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(order.to_wilaya)}</h1>
               {(order.from_address || order.to_address) && <p className="mt-1 text-sm text-slate-500">{order.from_address || "—"} → {order.to_address || "—"}</p>}
               {order.description && <p className="mt-2 text-sm">{order.description}</p>}
@@ -116,7 +119,7 @@ export default function ClientOrder() {
             {order.phase === "bidding" && (
               <>
                 <AuctionBanner depart={order.depart_date ? departDate(order.depart_date, order.depart_time ?? "00:00") : null} round={order.auction_round} who="client" />
-                <p className="text-xs font-semibold text-slate-500">🏆 {t("Tous les transporteurs en ligne peuvent enchérir. Le prix le plus bas gagne quand VOUS terminez l'enchère ; ensuite vous confirmez le gagnant (si vous refusez, l'enchère reprend).")}</p>
+                <p className="text-xs font-semibold text-slate-500">🏆 {t("Tous les transporteurs en ligne peuvent enchérir. Vous choisissez librement qui transporte votre marchandise (pas forcément le moins cher), à tout moment.")}</p>
               </>
             )}
 
@@ -125,7 +128,7 @@ export default function ClientOrder() {
                 <p className="text-sm font-extrabold text-brand-pink">🏆 {t("Enchère terminée — offre gagnante")}</p>
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="font-extrabold">🚚 {winner.driver_first_name}</p>
+                    <p className="font-extrabold">🚚 {t("Transporteur")} {winner.alias} {winner.rating_count > 0 && <Stars value={winner.rating} />}</p>
                     <p className="text-xs text-slate-500">{t(winner.vehicle_type)}{winner.wilaya ? ` · ${w(winner.wilaya)}` : ""} · {t(winner.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: winner.deliveries })}</p>
                   </div>
                   <div className="text-end"><p className="text-xl font-extrabold">{da(winner.price)}</p></div>
@@ -145,12 +148,18 @@ export default function ClientOrder() {
                   <div key={b.id} className={`rounded-2xl border-2 p-3 ${b.status === "won" ? "border-brand-pink" : b.price === best ? "border-emerald-300 bg-emerald-50/50" : "border-violet-100"}`}>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="font-extrabold">🚚 {b.driver_first_name} {b.price === best && <span className="badge ms-1 bg-emerald-100 text-emerald-700">{t("Meilleur prix")}</span>}</p>
+                        <p className="font-extrabold">🚚 {t("Transporteur")} {b.alias} {b.rating_count > 0 && <><Stars value={b.rating} /> <span className="text-xs font-bold text-slate-500">({b.rating_count})</span></>} {b.price === best && <span className="badge ms-1 bg-emerald-100 text-emerald-700">{t("Meilleur prix")}</span>}</p>
                         <p className="text-xs text-slate-500">{t(b.vehicle_type)}{b.wilaya ? ` · ${w(b.wilaya)}` : ""} · {t(b.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: b.deliveries })}</p>
                         {b.note && <p className="mt-1 text-sm">« {b.note} »</p>}
                       </div>
                       <div className="text-end"><p className="text-lg font-extrabold">{da(b.price)}</p></div>
                     </div>
+                    {order.phase !== "closed" && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button disabled={!!busy || !b.loc_ok} onClick={async () => { await act("choose", () => sb.rpc("flixi_client_choose_bid", { p_bid: b.id })); window.dispatchEvent(new Event("flixi:poll")); }} className="btn btn-primary !py-1.5 text-sm">✔ {t("Choisir ce transporteur")}</button>
+                        {!b.loc_ok && <span className="text-xs font-bold text-rose-600">📍 {t("Localisation du transporteur désactivée")}</span>}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -177,6 +186,8 @@ export default function ClientOrder() {
         )}
 
         {order.status === "cancelled" && order.cancel_reason && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason })}</Alert>}
+        {["matched", "in_transit", "delivered"].includes(order.status) && <OrderChat sb={sb} orderId={id} open={order.status !== "delivered"} />}
+        {order.status === "delivered" && <RatePanel sb={sb} orderId={id} who="client" />}
         {order.status === "expired" && <Alert>{t("Cette commande a expiré : aucune offre n'a été retenue avant la date de départ.")}</Alert>}
 
         {order.final_price && (

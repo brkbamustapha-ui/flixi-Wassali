@@ -63,3 +63,10 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- RPC: flixi_client_cancel, flixi_driver_cancel, flixi_answer_cancel, flixi_report_no_show, flixi_my_notifs, flixi_notifs_seen,
 --      flixi_admin_reports / flixi_admin_warn / flixi_admin_report_close ; départ >= 10 min, < 2 h = urgent ; fin d'enchère à durée choisie par flixi_settle_all ;
 --      noms retirés des offres visibles par les transporteurs ; profils non modifiables par l'utilisateur (update révoqué).
+
+-- ===== Mise à jour « Flixi » n°2 (appliqué via execute_sql) =====
+-- Références CMD-xxxxx / TRJ-xxxxx (séquences) ; communes (orders.from_commune/to_commune, fichiers /public/communes) ; manutention (handlers_count, floor_no, driver_brings_handlers) ;
+-- flixi_client_choose_bid / flixi_trip_choose_bid (choix libre) ; messages (flixi_messages + RPC) ; notes (flixi_ratings + RPC) ; notifications (cloche, read) ;
+-- historique anonyme (flixi_my_history) ; gains mensuels (flixi_my_earnings) ; contacts multiples vérifiés (flixi_contacts) ; demandes de modification (flixi_change_requests) ;
+-- conditions acceptées (profiles.terms_*) ; localisation obligatoire (drivers.loc_*, flixi_driver_loc_ok, policy bids_insert) ; bannissement 3 annulations/7 j (flixi_bans, IP) + appel ;
+-- trajets sur le trajet d'une course (flixi_trips.parent_order_id) ; noms retirés des annonces (alias T1234 / C1234).

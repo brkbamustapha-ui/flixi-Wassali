@@ -4,10 +4,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Celebration, { CelebEvent } from "./Celebration";
-import { useI18n } from "@/lib/i18n";
-import { da } from "@/lib/format";
-
-type Notif = { id: string; kind: string; params: { from?: string; to?: string; price?: number; by?: string; count?: number; accepted?: boolean; order?: string } };
+import { useNotifText, type Notif } from "@/lib/notifs";
 
 /** Petit « ding » généré par le navigateur (aucun fichier audio nécessaire). */
 function beep() {
@@ -35,32 +32,18 @@ export default function EventsHost({ sb, role }: { sb: SupabaseClient; role: "cl
   const router = useRouter();
   const [queue, setQueue] = useState<CelebEvent[]>([]);
   const shown = useRef<Set<string>>(new Set());
-  const { t, w } = useI18n();
+  const { text, href } = useNotifText(role);
   const [toasts, setToasts] = useState<{ id: string; text: string; href?: string }[]>([]);
-
-  const text = useCallback((n: Notif) => {
-    const r = n.params.from && n.params.to ? `${w(n.params.from)} → ${w(n.params.to)}` : "";
-    switch (n.kind) {
-      case "new_bid": return t("Nouvelle offre de {p} sur votre commande {r}", { p: da(n.params.price), r });
-      case "new_trip_bid": return t("Nouvelle offre de {p} sur votre trajet {r}", { p: da(n.params.price), r });
-      case "deal": return t("Affaire conclue {r} pour {p}", { p: da(n.params.price), r });
-      case "cancel_request": return t("Demande d'annulation reçue pour {r}", { r });
-      case "cancel_answer": return n.params.accepted ? t("Votre demande d'annulation a été acceptée ({r})", { r }) : t("Votre demande d'annulation a été refusée ({r})", { r });
-      case "cancelled": return t("Course annulée par {who} ({r})", { who: n.params.by === "driver" ? t("le transporteur") : t("le client"), r });
-      case "warning": return t("Avertissement {n}/2 : au bout de 2 avertissements votre compte est banni.", { n: n.params.count ?? 1 });
-      default: return t("Nouvelle notification");
-    }
-  }, [t, w]);
 
   const pollNotifs = useCallback(async () => {
     const { data } = await sb.rpc("flixi_my_notifs");
     const list = (data as Notif[]) ?? [];
     if (!list.length) return;
     await sb.rpc("flixi_notifs_seen");
-    setToasts((q) => [...q, ...list.map((n) => ({ id: n.id, text: text(n), href: n.params.order ? `/client/orders/${n.params.order}` : undefined }))].slice(-4));
+    setToasts((q) => [...q, ...list.map((n) => ({ id: n.id, text: text(n), href: href(n) }))].slice(-4));
     beep();
     list.forEach((n) => setTimeout(() => setToasts((q) => q.filter((x) => x.id !== n.id)), 9000));
-  }, [sb, text]);
+  }, [sb, text, href]);
 
   const poll = useCallback(async () => {
     const { data } = await sb.rpc("flixi_my_events");
