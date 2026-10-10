@@ -864,4 +864,10 @@ export const DICT: Record<string, [string, string, string]> = {
   "Aa": ["Aa", "Aa", "Aa"],
   "Ouvrir la discussion": ["Open the conversation", "فتح المحادثة", "افتح الدردشة"],
   "Position approximative via votre adresse IP (ordinateur).": ["Approximate location via your IP address (computer).", "موقع تقريبي عبر عنوان IP (حاسوب).", "موقع تقريبي من عنوان IP (كمبيوتر)."],
+  "Arrêter cette annonce ? Plus aucun client ne pourra enchérir. Les commandes déjà acceptées restent valables.": ["Stop this announcement? No more customers will be able to bid. Orders already accepted remain valid.", "إيقاف هذا الإعلان؟ لن يتمكن أي زبون من المزايدة. تبقى الطلبات المقبولة سارية.", "توقّف هاد الإعلان؟ حتى زبون ما يقدر يزايد. الطلبيات لي تقبلو تبقى صالحة."],
+  "Arrêter l'annonce": ["Stop the announcement", "إيقاف الإعلان", "وقّف الإعلان"],
+  "{n} commande(s) acceptée(s) sur cette annonce": ["{n} order(s) accepted on this announcement", "{n} طلب (طلبات) مقبول على هذا الإعلان", "{n} طلبيات مقبولة في هاد الإعلان"],
+  "L'annonce reste ouverte : vous pouvez accepter d'autres clients tant qu'il vous reste de la place. Arrêtez-la quand vous voulez.": ["The announcement stays open: you can accept more customers as long as you have space left. Stop it whenever you like.", "يبقى الإعلان مفتوحًا: يمكنك قبول زبائن آخرين ما دام لديك مكان. أوقفه متى شئت.", "الإعلان يبقى مفتوح: تقدر تقبل زبائن آخرين مادامت عندك مكانة. وقّفو وقتما تحب."],
+  "Accepté": ["Accepted", "مقبول", "مقبول"],
+  "offre déjà acceptée": ["offer already accepted", "العرض مقبول مسبقًا", "العرض تقبل من قبل"],
 };

@@ -14,7 +14,7 @@ import { useI18n } from "@/lib/i18n";
 type TBid = { id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null; alias: string; rating: number; rating_count: number };
 type Trip = {
   id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; price: number | null; note: string | null;
-  ref?: string; parent_order_id?: string | null; status: string; phase: string; urgent?: boolean; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
+  ref?: string; orders?: { id: string; ref: string; price: number; status: string }[]; parent_order_id?: string | null; status: string; phase: string; urgent?: boolean; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
 };
 
 export default function Trips() {
@@ -133,8 +133,16 @@ export default function Trips() {
                   <p className="text-xs font-extrabold text-brand-pink">{x.ref}</p><p className="text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)} {x.urgent && <span className="badge bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}</p>
                   <p className="text-sm text-slate-600">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}{x.price ? ` · ${t("Prix annoncé : {p}", { p: da(x.price) })}` : ""}</p>
                 </div>
-                <button className="btn btn-danger !px-3 !py-1 text-xs" onClick={async () => { await sb.from("flixi_trips").update({ status: "closed" }).eq("id", x.id); load(); }}>{t("Fermer")}</button>
+                <button className="btn btn-danger !px-3 !py-1 text-xs" onClick={async () => { if (!confirm(t("Arrêter cette annonce ? Plus aucun client ne pourra enchérir. Les commandes déjà acceptées restent valables."))) return; await sb.from("flixi_trips").update({ status: "closed" }).eq("id", x.id); load(); }}>⏹ {t("Arrêter l'annonce")}</button>
               </div>
+
+              {(x.orders?.length ?? 0) > 0 && (
+                <div className="rounded-2xl bg-emerald-50 p-3 text-sm">
+                  <p className="font-extrabold text-emerald-800">✔ {t("{n} commande(s) acceptée(s) sur cette annonce", { n: x.orders!.length })}</p>
+                  <div className="mt-1 flex flex-wrap gap-2">{x.orders!.map((o) => <Link key={o.id} href={`/driver/orders/${o.id}`} className="badge bg-white text-emerald-700 ring-1 ring-emerald-200">{o.ref} · {da(o.price)} →</Link>)}</div>
+                  <p className="mt-1 text-xs text-emerald-900">{t("L'annonce reste ouverte : vous pouvez accepter d'autres clients tant qu'il vous reste de la place. Arrêtez-la quand vous voulez.")}</p>
+                </div>
+              )}
 
               {x.phase === "bidding" && <AuctionBanner depart={departDate(x.depart_date, x.depart_time)} round={x.round} who="driver" />}
 
@@ -159,7 +167,7 @@ export default function Trips() {
                   {x.bids.map((b, i) => (
                     <div key={b.id} className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5 text-sm ${b.status === "won" ? "border-brand-pink" : i === 0 ? "border-emerald-300 bg-emerald-50/50" : "border-violet-100"}`}>
                       <span><b>👤 {t("Client")} {b.alias}</b> {b.rating_count > 0 && <Stars value={b.rating} />} <span className="text-xs text-slate-500">· {t(b.goods_type)}{b.weight_kg ? ` · ${b.weight_kg} kg` : ""}</span></span>
-                      <span className="flex items-center gap-2">{x.phase !== "booked" && <button onClick={() => chooseBid(b.id)} className="btn btn-primary !px-3 !py-1 text-xs">✔ {t("Choisir")}</button>}<b className="text-base">{da(b.price)}</b>{i === 0 && x.phase === "bidding" && <span className="badge bg-emerald-100 text-emerald-700">{t("Meilleur prix")}</span>}</span>
+                      <span className="flex items-center gap-2">{b.status === "accepted" ? <span className="badge bg-emerald-100 text-emerald-700">✔ {t("Accepté")}</span> : <button onClick={() => chooseBid(b.id)} className="btn btn-primary !px-3 !py-1 text-xs">✔ {t("Choisir")}</button>}<b className="text-base">{da(b.price)}</b>{i === 0 && x.phase === "bidding" && <span className="badge bg-emerald-100 text-emerald-700">{t("Meilleur prix")}</span>}</span>
                     </div>
                   ))}
                 </div>
@@ -177,7 +185,7 @@ export default function Trips() {
           <div key={x.id} className="card flex flex-wrap items-center justify-between gap-2 p-4 text-sm opacity-90">
             <div><p className="font-extrabold">{w(x.from_wilaya)} → {w(x.to_wilaya)}</p><p className="text-xs text-slate-500">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}</p></div>
             <div className="flex items-center gap-2">
-              {x.phase === "booked" && x.booked_order_id ? <Link href={`/driver/orders/${x.booked_order_id}`} className="badge bg-emerald-100 text-emerald-700">✔ {t("Réservé")} →</Link> : <span className="badge bg-slate-200 text-slate-600">{t("Fermé")}</span>}
+              {(x.orders?.length ?? 0) > 0 ? x.orders!.map((o) => <Link key={o.id} href={`/driver/orders/${o.id}`} className="badge bg-emerald-100 text-emerald-700">✔ {o.ref} →</Link>) : <span className="badge bg-slate-200 text-slate-600">{t("Fermé")}</span>}
               <button className="btn btn-danger !px-3 !py-1 text-xs" onClick={async () => { await sb.from("flixi_trips").delete().eq("id", x.id); load(); }}>{t("Supprimer")}</button>
             </div>
           </div>

@@ -127,9 +127,9 @@ export default function ClientTrips() {
 
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                   {x.is_mine ? <span className="badge bg-slate-100 text-slate-600">{t("Votre trajet")}</span>
-                    : x.my_bid ? <span className={`badge ${lead ? "bg-emerald-100 text-emerald-700" : x.my_bid.status === "won" ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-700"}`}>{x.my_bid.status === "won" ? `🏆 ${t("En attente du transporteur")}` : lead ? `🥇 ${t("Vous êtes en tête")}` : t("Dépassé")} · {da(x.my_bid.price)}</span>
+                    : x.my_bid ? <span className={`badge ${lead ? "bg-emerald-100 text-emerald-700" : x.my_bid.status === "accepted" ? "bg-emerald-100 text-emerald-700" : x.my_bid.status === "won" ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-700"}`}>{x.my_bid.status === "accepted" ? `✔ ${t("Accepté par le transporteur")}` : x.my_bid.status === "won" ? `🏆 ${t("En attente du transporteur")}` : lead ? `🥇 ${t("Vous êtes en tête")}` : t("Dépassé")} · {da(x.my_bid.price)}</span>
                     : <span />}
-                  {!x.is_mine && biddingOpen && (
+                  {!x.is_mine && biddingOpen && x.my_bid?.status !== "accepted" && (
                     <div className="flex flex-wrap gap-2">
                       {x.price ? <button type="button" onClick={() => setModal({ trip: x, mode: "accept" })} className="btn btn-ghost !px-3 !py-2 text-sm">✔ {t("Accepter {p}", { p: da(x.price) })}</button> : null}
                       <button type="button" onClick={() => setModal({ trip: x, mode: "bid" })} className="btn btn-primary !py-2 text-sm">🔨 {x.my_bid ? t("Modifier mon enchère") : t("Enchérir")}</button>
