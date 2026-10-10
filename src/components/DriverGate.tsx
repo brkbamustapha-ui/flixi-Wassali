@@ -38,10 +38,26 @@ export function TermsGate({ sb, onDone, onLogout }: { sb: SupabaseClient; onDone
 }
 
 /** Localisation obligatoire : elle doit rester activée en permanence (le serveur refuse les offres sinon). Bloque l'application si elle est coupée. */
-export function LocationGuard({ sb, children }: { sb: SupabaseClient; children: React.ReactNode }) {
+export function LocationGuard({ sb, userId, children }: { sb: SupabaseClient; userId: string; children: React.ReactNode }) {
   const { t } = useI18n();
   const [state, setState] = useState<"checking" | "ok" | "denied" | "unsupported">("checking");
+  const [active, setActive] = useState(0);
+  const orders = useRef<string[]>([]);
   const last = useRef(0);
+
+  // Courses en cours : la position leur est envoyée automatiquement, quelle que soit la page ouverte
+  useEffect(() => {
+    let dead = false;
+    const load = async () => {
+      const { data } = await sb.from("flixi_orders").select("id").eq("driver_id", userId).in("status", ["matched", "in_transit"]);
+      if (dead) return;
+      orders.current = (data ?? []).map((o: { id: string }) => o.id);
+      setActive(orders.current.length);
+    };
+    load();
+    const i = setInterval(load, 30000);
+    return () => { dead = true; clearInterval(i); };
+  }, [sb, userId]);
 
   useEffect(() => {
     if (!navigator.geolocation) return setState("unsupported");
@@ -50,6 +66,7 @@ export function LocationGuard({ sb, children }: { sb: SupabaseClient; children: 
       if (Date.now() - last.current < 15000) return;
       last.current = Date.now();
       sb.rpc("flixi_driver_ping_loc", { p_lat: lat, p_lng: lng });
+      orders.current.forEach((id) => sb.rpc("flixi_update_location", { p_order: id, p_lat: lat, p_lng: lng }));
     };
     const ok = (p: GeolocationPosition) => { if (dead) return; setState("ok"); push(p.coords.latitude, p.coords.longitude); };
     const ko = (e: GeolocationPositionError) => { if (!dead && e.code === 1) setState("denied"); };
@@ -65,6 +82,7 @@ export function LocationGuard({ sb, children }: { sb: SupabaseClient; children: 
       <div className="card max-w-sm space-y-4 p-6">
         <div className="text-5xl">📍</div>
         <h2 className="text-xl font-extrabold">{t("Activez la localisation")}</h2>
+        {active > 0 && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">{t("Course en cours : la localisation ne peut pas être désactivée tant que la marchandise n'est pas livrée.")}</p>}
         <p className="text-sm text-slate-600">{state === "unsupported" ? t("Votre appareil ne permet pas la géolocalisation : elle est obligatoire pour les transporteurs.") : t("La localisation est obligatoire pour suivre la marchandise. Activez-la dans les réglages de votre navigateur puis réessayez : sans elle, vous ne pouvez ni enchérir ni accepter une commande.")}</p>
         <button onClick={() => { setState("checking"); navigator.geolocation?.getCurrentPosition(() => setState("ok"), (e) => e.code === 1 && setState("denied"), { enableHighAccuracy: true, timeout: 20000 }); }} className="btn btn-primary w-full">{t("Réessayer")}</button>
       </div>

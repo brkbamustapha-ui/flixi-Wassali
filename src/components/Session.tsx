@@ -86,7 +86,7 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
 
   return (
     <SessionCtx.Provider value={{ sb, profile, driver, refresh: load }}>
-     <GuardWrap on={role === "driver" && !!driver && path !== "/driver/apply"} sb={sb}>
+     <GuardWrap on={role === "driver" && !!driver && path !== "/driver/apply"} sb={sb} userId={profile.id}>
       <div className="min-h-screen pb-24 md:pb-10">
         <header className="sticky top-0 z-30 border-b border-violet-100 bg-white/85 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
@@ -132,8 +132,8 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
 }
 
 /** Localisation obligatoire pour les transporteurs (hors formulaire d'inscription du dossier). */
-function GuardWrap({ on, sb, children }: { on: boolean; sb: SupabaseClient; children: ReactNode }) {
-  return on ? <LocationGuard sb={sb}>{children}</LocationGuard> : <>{children}</>;
+function GuardWrap({ on, sb, userId, children }: { on: boolean; sb: SupabaseClient; userId: string; children: ReactNode }) {
+  return on ? <LocationGuard sb={sb} userId={userId}>{children}</LocationGuard> : <>{children}</>;
 }
 
 /** Écran bloquant pour les comptes créés avant l'ajout de la date de naissance. */

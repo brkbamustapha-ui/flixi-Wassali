@@ -70,3 +70,6 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- historique anonyme (flixi_my_history) ; gains mensuels (flixi_my_earnings) ; contacts multiples vérifiés (flixi_contacts) ; demandes de modification (flixi_change_requests) ;
 -- conditions acceptées (profiles.terms_*) ; localisation obligatoire (drivers.loc_*, flixi_driver_loc_ok, policy bids_insert) ; bannissement 3 annulations/7 j (flixi_bans, IP) + appel ;
 -- trajets sur le trajet d'une course (flixi_trips.parent_order_id) ; noms retirés des annonces (alias T1234 / C1234).
+
+-- Identités masquées après livraison (flixi_order_contacts: matched/in_transit seulement) ; flixi_get_location retombe sur la dernière position du transporteur ;
+-- start_transit / mark_delivered exigent la localisation ; envoi automatique de la position aux courses en cours (LocationGuard).

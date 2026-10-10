@@ -8,6 +8,7 @@ import { ORDER_STATUS, phoneDigits, hoursUntil, CANCEL_FREE_HOURS } from "@/lib/
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import OrderDetails from "@/components/OrderDetails";
 import OrderChat from "@/components/OrderChat";
+import { pingNow } from "@/lib/location";
 import RatePanel from "@/components/RatePanel";
 import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
@@ -63,6 +64,7 @@ export default function DriverOrder() {
 
   async function act(fn: string) {
     setErr("");
+    if (!(await pingNow(sb))) return setErr(t("Position introuvable : activez la localisation de votre appareil puis réessayez."));
     const { error } = await sb.rpc(fn, { p_order: id });
     if (error) setErr(t(error.message));
     load();
@@ -131,7 +133,7 @@ export default function DriverOrder() {
           {geoErr && <Alert>{geoErr}</Alert>}
           {order.status === "matched" && <button onClick={() => act("flixi_start_transit")} className="btn btn-primary w-full !py-3">🚚 {t("J'ai chargé la marchandise — démarrer la course")}</button>}
           {order.status === "in_transit" && <button onClick={() => act("flixi_mark_delivered")} className="btn btn-ok w-full !py-3">✔ {t("Marchandise livrée")}</button>}
-          {order.status === "delivered" && <Alert kind="ok">{t("Course terminée. Pensez à verser votre commission chaque samedi.")}</Alert>}
+          {order.status === "delivered" && <Alert kind="ok">{t("Course terminée. Pensez à verser votre commission chaque samedi.")} {t("Les informations personnelles du client sont maintenant masquées ; tous les détails de la course restent affichés.")}</Alert>}
           {order.status === "cancelled" && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason ?? "—" })}</Alert>}
 
           {order.cancel_status === "requested" && order.cancel_by === "client" && ["matched", "in_transit"].includes(order.status) && (

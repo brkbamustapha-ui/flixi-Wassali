@@ -45,10 +45,10 @@ export default function ClientOrder() {
     } else {
       const { data: c } = await sb.rpc("flixi_order_contacts", { p_order: id });
       setContacts(c as Contacts | null);
-      if (o.status !== "delivered") {
+      if (["matched", "in_transit"].includes(o.status)) {
         const { data: l } = await sb.rpc("flixi_get_location", { p_order: id });
         setLoc(l as Loc);
-      }
+      } else setLoc(null);
     }
   }, [sb, id, router]);
 
@@ -193,6 +193,7 @@ export default function ClientOrder() {
         {order.final_price && (
           <div className="card space-y-4 p-5 sm:p-6">
             <h2 className="text-lg font-extrabold">{t("Commande conclue ✅")}</h2>
+            {order.status === "delivered" && <Alert kind="info">{t("Course terminée : les informations personnelles du transporteur sont maintenant masquées ; tous les détails de la course restent affichés.")}</Alert>}
             <PriceBreakdown price={order.final_price} role="client" />
             <CancelBox order={order} busy={busy} act={act} sb={sb} id={id} cancelOpen={cancelOpen} setCancelOpen={setCancelOpen} reason={reason} setReason={setReason} />
             {contacts && (
@@ -218,8 +219,9 @@ export default function ClientOrder() {
       </div>
 
       <div className="card space-y-3 p-4 lg:col-span-2 lg:sticky lg:top-24 lg:self-start">
-        <p className="font-extrabold">{order.status === "in_transit" ? t("🚚 Suivi en direct") : t("Itinéraire")}</p>
-        <MapView height={360} markers={markers} line={markers.filter((m) => m.emoji !== "🚚").map((m) => [m.lat, m.lng] as [number, number])} />
+        <p className="font-extrabold">{["matched", "in_transit"].includes(order.status) ? t("🚚 Suivi du transporteur en direct") : t("Itinéraire")}</p>
+        <MapView height={420} markers={markers} line={markers.filter((m) => m.emoji !== "🚚").map((m) => [m.lat, m.lng] as [number, number])} focus={loc ? { lat: loc.lat, lng: loc.lng, zoom: 11, key: "driver-first" } : null} />
+        {["matched", "in_transit"].includes(order.status) && loc && Date.now() - new Date(loc.updated_at).getTime() > 4 * 60 * 1000 && <Alert>⚠ {t("Aucune position reçue du transporteur depuis plusieurs minutes. La localisation est obligatoire : l'équipe est informée.")}</Alert>}
         {["matched", "in_transit"].includes(order.status) && (
           <p className="text-xs text-slate-500">{loc ? t("Dernière position du transporteur : {d}", { d: dateTime(loc.updated_at) }) : t("En attente de la position GPS du transporteur…")}</p>
         )}
