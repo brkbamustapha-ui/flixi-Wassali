@@ -7,7 +7,7 @@ import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
 import { ORDER_STATUS, phoneDigits, hoursUntil, CANCEL_FREE_HOURS } from "@/lib/format";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import OrderDetails from "@/components/OrderDetails";
-import OrderChat from "@/components/OrderChat";
+import ChatHead, { ChatLauncher } from "@/components/OrderChat";
 import { pingNow } from "@/lib/location";
 import RatePanel from "@/components/RatePanel";
 import { findWilaya } from "@/lib/wilayas";
@@ -184,7 +184,7 @@ export default function DriverOrder() {
           <MapView height={360} markers={markers} line={markers.filter((m) => m.emoji !== "🚚").map((m) => [m.lat, m.lng] as [number, number])} />
           {tracking && <p className="text-xs text-slate-500">{t("Gardez cette page ouverte et la localisation activée : le client suit votre position en direct.")}</p>}
         </div>
-        {["matched", "in_transit", "delivered"].includes(order.status) && <OrderChat sb={sb} orderId={id} open={order.status !== "delivered"} />}
+        {["matched", "in_transit", "delivered"].includes(order.status) && <><ChatLauncher /><ChatHead sb={sb} orderId={id} open={order.status !== "delivered"} refLabel={order.ref} other="client" /></>}
         {order.status === "delivered" && <RatePanel sb={sb} orderId={id} who="driver" />}
       </div>
     </div>

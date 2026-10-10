@@ -73,3 +73,5 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 
 -- Identités masquées après livraison (flixi_order_contacts: matched/in_transit seulement) ; flixi_get_location retombe sur la dernière position du transporteur ;
 -- start_transit / mark_delivered exigent la localisation ; envoi automatique de la position aux courses en cours (LocationGuard).
+
+-- Messagerie façon Messenger: flixi_messages.read_at, flixi_mark_messages_read, flixi_unread_messages (appliqué via execute_sql).

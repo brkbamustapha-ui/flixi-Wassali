@@ -8,7 +8,7 @@ import { AuctionBanner } from "@/components/Countdown";
 import { ORDER_STATUS, da, phoneDigits, departDate, hoursUntil, CANCEL_FREE_HOURS } from "@/lib/format";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import OrderDetails from "@/components/OrderDetails";
-import OrderChat from "@/components/OrderChat";
+import ChatHead, { ChatLauncher } from "@/components/OrderChat";
 import RatePanel, { Stars } from "@/components/RatePanel";
 import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
@@ -186,7 +186,7 @@ export default function ClientOrder() {
         )}
 
         {order.status === "cancelled" && order.cancel_reason && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason })}</Alert>}
-        {["matched", "in_transit", "delivered"].includes(order.status) && <OrderChat sb={sb} orderId={id} open={order.status !== "delivered"} />}
+        {["matched", "in_transit", "delivered"].includes(order.status) && <><ChatLauncher /><ChatHead sb={sb} orderId={id} open={order.status !== "delivered"} refLabel={order.ref} other="driver" /></>}
         {order.status === "delivered" && <RatePanel sb={sb} orderId={id} who="client" />}
         {order.status === "expired" && <Alert>{t("Cette commande a expiré : aucune offre n'a été retenue avant la date de départ.")}</Alert>}
 

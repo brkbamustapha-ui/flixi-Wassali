@@ -859,4 +859,8 @@ export const DICT: Record<string, [string, string, string]> = {
   "Course terminée : les informations personnelles du transporteur sont maintenant masquées ; tous les détails de la course restent affichés.": ["Trip completed: the carrier's personal information is now hidden; all trip details remain displayed.", "انتهت الرحلة: أصبحت المعلومات الشخصية للناقل مخفية؛ وتبقى جميع تفاصيل الرحلة معروضة.", "التوصيلة سالات: المعلومات الشخصية تاع الناقل تخبّاو دوك؛ وتفاصيل التوصيلة كاملة تبقى باينة."],
   "🚚 Suivi du transporteur en direct": ["🚚 Live carrier tracking", "🚚 تتبّع الناقل مباشرة", "🚚 تتبّع الناقل مباشر"],
   "Aucune position reçue du transporteur depuis plusieurs minutes. La localisation est obligatoire : l'équipe est informée.": ["No position received from the carrier for several minutes. Location is mandatory: the team is informed.", "لم يصل أي موقع من الناقل منذ عدة دقائق. الموقع إجباري: تم إبلاغ الفريق.", "ما جاتنا حتى position من الناقل من بزاف دقايق. الموقع إجباري: الفريق تنبّه."],
+  "Vu": ["Seen", "تمت المشاهدة", "شافو"],
+  "Envoyé": ["Sent", "أُرسلت", "تبعت"],
+  "Aa": ["Aa", "Aa", "Aa"],
+  "Ouvrir la discussion": ["Open the conversation", "فتح المحادثة", "افتح الدردشة"],
 };
