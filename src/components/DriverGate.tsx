@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Logo } from "@/components/Logo";
 import { Alert } from "@/components/ui";
 import { useI18n } from "@/lib/i18n";
+import { ipLocation, isDesktop } from "@/lib/location";
 
 export const TERMS_VERSION = 1;
 
@@ -42,6 +43,7 @@ export function LocationGuard({ sb, userId, children }: { sb: SupabaseClient; us
   const { t } = useI18n();
   const [state, setState] = useState<"checking" | "ok" | "denied" | "unsupported">("checking");
   const [active, setActive] = useState(0);
+  const [approx, setApprox] = useState(false);
   const orders = useRef<string[]>([]);
   const last = useRef(0);
 
@@ -60,23 +62,30 @@ export function LocationGuard({ sb, userId, children }: { sb: SupabaseClient; us
   }, [sb, userId]);
 
   useEffect(() => {
-    if (!navigator.geolocation) return setState("unsupported");
     let dead = false;
+    // Ordinateur sans GPS ou localisation système indisponible : position approximative via la connexion internet
+    const viaIp = async () => {
+      const p = await ipLocation();
+      if (dead) return;
+      if (p) { setApprox(true); setState("ok"); push(p.lat, p.lng); } else setState((s) => (s === "ok" ? s : "unsupported"));
+    };
+    // Ordinateur : localisation par adresse IP (pas de GPS) ; téléphone : GPS / Wi-Fi du navigateur, avec repli IP
+    if (isDesktop() || !navigator.geolocation) { viaIp(); const i = setInterval(viaIp, 45000); return () => { dead = true; clearInterval(i); }; }
     const push = (lat: number, lng: number) => {
       if (Date.now() - last.current < 15000) return;
       last.current = Date.now();
       sb.rpc("flixi_driver_ping_loc", { p_lat: lat, p_lng: lng });
       orders.current.forEach((id) => sb.rpc("flixi_update_location", { p_order: id, p_lat: lat, p_lng: lng }));
     };
-    const ok = (p: GeolocationPosition) => { if (dead) return; setState("ok"); push(p.coords.latitude, p.coords.longitude); };
-    const ko = (e: GeolocationPositionError) => { if (!dead && e.code === 1) setState("denied"); };
+    const ok = (p: GeolocationPosition) => { if (dead) return; setApprox(false); setState("ok"); push(p.coords.latitude, p.coords.longitude); };
+    const ko = (e: GeolocationPositionError) => { if (dead) return; if (e.code === 1) setState("denied"); else viaIp(); };
     const id = navigator.geolocation.watchPosition(ok, ko, { enableHighAccuracy: false, maximumAge: 30000, timeout: 60000 });
     navigator.geolocation.getCurrentPosition(ok, ko, { enableHighAccuracy: false, maximumAge: 120000, timeout: 15000 });
     const tick = setInterval(() => navigator.geolocation.getCurrentPosition(ok, ko, { enableHighAccuracy: false, maximumAge: 60000, timeout: 20000 }), 45000);
     return () => { dead = true; navigator.geolocation.clearWatch(id); clearInterval(tick); };
   }, [sb]);
 
-  if (state === "ok" || state === "checking") return <>{children}</>;
+  if (state === "ok" || state === "checking") return <>{approx && <p className="fixed inset-x-0 bottom-0 z-[65] bg-amber-100 px-3 py-1 text-center text-[11px] font-bold text-amber-900 md:bottom-auto md:top-0">📍 {t("Position approximative via votre adresse IP (ordinateur).")}</p>}{children}</>;
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-white/95 px-6 text-center backdrop-blur">
       <div className="card max-w-sm space-y-4 p-6">

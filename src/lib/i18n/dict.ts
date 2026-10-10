@@ -863,4 +863,5 @@ export const DICT: Record<string, [string, string, string]> = {
   "Envoyé": ["Sent", "أُرسلت", "تبعت"],
   "Aa": ["Aa", "Aa", "Aa"],
   "Ouvrir la discussion": ["Open the conversation", "فتح المحادثة", "افتح الدردشة"],
+  "Position approximative via votre adresse IP (ordinateur).": ["Approximate location via your IP address (computer).", "موقع تقريبي عبر عنوان IP (حاسوب).", "موقع تقريبي من عنوان IP (كمبيوتر)."],
 };

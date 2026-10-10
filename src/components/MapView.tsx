@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type * as L from "leaflet";
+import { getPosition } from "@/lib/location";
 
 export type MapMarker = { lat: number; lng: number; color: string; label?: string; emoji?: string; onDrag?: (lat: number, lng: number) => void };
 type Props = {
@@ -94,11 +95,10 @@ export default function MapView({ markers = [], line, center, zoom, height = 320
 
   function locate() {
     setLocErr(false);
-    navigator.geolocation?.getCurrentPosition(
-      (p) => map.current?.flyTo([p.coords.latitude, p.coords.longitude], 15, { duration: 0.8 }),
-      () => setLocErr(true),
-      { enableHighAccuracy: true, timeout: 15000 },
-    );
+    getPosition().then(({ pos }) => {
+      if (!pos) return setLocErr(true);
+      map.current?.flyTo([pos.lat, pos.lng], pos.approx ? 11 : 15, { duration: 0.8 });
+    });
   }
 
   const btn = "flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg font-bold shadow-lg ring-1 ring-black/10 active:scale-95";

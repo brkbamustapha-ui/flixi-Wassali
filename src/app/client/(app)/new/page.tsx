@@ -6,6 +6,7 @@ import { useSession } from "@/components/Session";
 import { Alert, Field, PriceBreakdown } from "@/components/ui";
 import { GOODS_TYPES, VEHICLE_TYPES, AUCTION_HOURS, MIN_PRICE, auctionPreview } from "@/lib/format";
 import { compressImage } from "@/lib/images";
+import { getPosition } from "@/lib/location";
 import { WILAYAS, findWilaya, wilayaLabel, nearestWilaya, distKm } from "@/lib/wilayas";
 import CommunePicker from "@/components/CommunePicker";
 import { geocodeCommune, reverseCommune, matchCommune, norm, type Commune } from "@/lib/geo";
@@ -105,10 +106,12 @@ export default function NewOrder() {
   }
 
   function locate() {
-    navigator.geolocation?.getCurrentPosition(
-      (p) => (placing === "from" ? setFromPt : setToPt)({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => setErr(t("Impossible d'obtenir votre position. Cliquez sur la carte pour placer le point.")),
-    );
+    getPosition().then(({ pos }) => {
+      if (!pos) return setErr(t("Impossible d'obtenir votre position. Cliquez sur la carte pour placer le point."));
+      setErr("");
+      (placing === "from" ? setFromPt : setToPt)({ lat: pos.lat, lng: pos.lng });
+      setFocus({ lat: pos.lat, lng: pos.lng, zoom: pos.approx ? 11 : 15, key: `loc:${Date.now()}` });
+    });
   }
 
   async function submit(e: FormEvent) {
