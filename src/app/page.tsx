@@ -18,8 +18,8 @@ export default function Home() {
   if (checking) return <div className="grad-soft min-h-screen pt-40"><Spinner /></div>;
   return (
     <div className="grad-soft min-h-screen">
-      <header className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-5">
-        <Logo size={44} />
+      <header className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-4 sm:px-4 sm:py-5">
+        <span className="min-w-0 shrink"><Logo size={36} /></span>
         <nav className="flex items-center gap-2 text-sm font-bold">
           <LangSwitch />
           <Link href="/client/login" className="btn btn-ghost !py-2">{t("Client")}</Link>

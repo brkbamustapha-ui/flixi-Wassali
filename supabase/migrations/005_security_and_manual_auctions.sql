@@ -92,3 +92,7 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- Commission : toujours = flixi_commission_for(final_price). Triggers flixi_orders_force_commission et
 -- flixi_commissions_sync (lignes impayées) ; anciennes commandes à 500 DA fixe recalculées (CMD-00003/9/17).
 -- « À encaisser » côté transporteur = prix convenu (jamais prix + commission).
+
+-- Audit : exécution retirée (authenticated/anon) sur les RPC obsolètes qui contournaient les règles
+-- (flixi_trip_bid, flixi_book_trip, flixi_driver_confirm_bid, flixi_driver_decline_bid, flixi_close_auction_now,
+-- flixi_cancel_order, flixi_trip_close_now). Fin de course uniquement via flixi_confirm_done (double confirmation).
