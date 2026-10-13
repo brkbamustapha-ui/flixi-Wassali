@@ -83,3 +83,8 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- flixi_switch_role, flixi_my_roles, flixi_confirm_done (fin de course = client ET chauffeur),
 -- flixi_trip_bid2 (infos complètes obligatoires), flixi_trip_bid_photos, flixi_trip_choose_bid,
 -- flixi_my_trips_overview, flixi_available_trips (allow_enroute + communes).
+
+-- Correctif : « trajet indisponible » quand le transporteur était en mode client (bascule de rôle).
+-- Nouvelle flixi_driver_ok(uid) = dossier approuvé + compte actif, SANS condition de rôle courant ;
+-- utilisée par flixi_trip_bid, flixi_trip_bid2, flixi_book_trip, flixi_client_accept_bid, flixi_client_choose_bid
+-- pour vérifier l'autre partie. flixi_is_approved_driver (rôle requis) reste pour l'appelant transporteur.
