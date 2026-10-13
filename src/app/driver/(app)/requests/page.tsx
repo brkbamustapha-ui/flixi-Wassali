@@ -166,7 +166,7 @@ export default function Requests() {
                     <p className="mt-3 text-lg font-extrabold">{w(o.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(o.to_wilaya)}</p>
                     {(o.from_address || o.to_address) && <p className="mt-1 text-xs text-slate-500">📍 {o.from_address || "—"} → 🏁 {o.to_address || "—"}</p>}
                     {o.description && <p className="mt-1 text-sm text-slate-600">{o.description}</p>}
-                    <OrderDetails order={o} sb={sb} />
+                    <OrderDetails order={o} sb={sb} maps />
 
                     <div className="mt-3 space-y-2">
                       {bidding ? <AuctionBanner depart={o.depart_date ? departDate(o.depart_date, o.depart_time ?? "00:00") : null} round={o.auction_round} who="client" />

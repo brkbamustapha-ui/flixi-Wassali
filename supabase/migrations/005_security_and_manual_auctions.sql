@@ -78,3 +78,8 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 
 -- Annonce de transporteur multi-commandes: flixi_trip_choose_bid / flixi_trip_accept_winner laissent l'annonce ouverte (phase bidding) ;
 -- le transporteur l'arrête quand il veut (status closed) ; flixi_my_trips_overview renvoie 'orders' ; flixi_trip_bid refuse un client déjà accepté (appliqué via execute_sql).
+
+-- Lot "bascule de rôle / en route / double confirmation" (appliqué via MCP) :
+-- flixi_switch_role, flixi_my_roles, flixi_confirm_done (fin de course = client ET chauffeur),
+-- flixi_trip_bid2 (infos complètes obligatoires), flixi_trip_bid_photos, flixi_trip_choose_bid,
+-- flixi_my_trips_overview, flixi_available_trips (allow_enroute + communes).

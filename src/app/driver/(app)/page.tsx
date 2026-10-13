@@ -18,6 +18,7 @@ export default function DriverHome() {
   const [decisions, setDecisions] = useState<WinTrip[]>([]);
   const [waiting, setWaiting] = useState<WonBid[]>([]);
   const [unpaid, setUnpaid] = useState(0);
+  const [net, setNet] = useState(0);
   const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
@@ -30,6 +31,9 @@ export default function DriverHome() {
     const { data: po } = ids.length ? await sb.from("flixi_orders").select(ORDER_COLS).in("id", ids).eq("status", "open") : { data: [] as Order[] };
     setWaiting((b ?? []).map((x) => ({ id: x.id, price: x.price, order: (po as unknown as Order[]).find((p) => p.id === x.order_id)! })).filter((x) => x.order));
     const { data: c } = await sb.from("flixi_commissions").select("amount").eq("status", "unpaid");
+    const { data: em } = await sb.rpc("flixi_my_earnings");
+    const key = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Algiers" }).slice(0, 7);
+    setNet(((em as { month: string; net: number }[]) ?? []).find((r) => r.month === key)?.net ?? 0);
     setOrders((o as unknown as Order[]) ?? []);
     setUnpaid((c ?? []).reduce((s, x) => s + x.amount, 0));
   }, [sb, profile.id]);
@@ -47,7 +51,6 @@ export default function DriverHome() {
   if (!orders || !driver) return <Spinner />;
   const active = orders.filter((o) => ["matched", "in_transit"].includes(o.status));
   const done = orders.filter((o) => o.status === "delivered");
-  const earned = done.reduce((s, o) => s + (o.final_price ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -65,7 +68,7 @@ export default function DriverHome() {
       )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[[t("Courses en cours"), active.length], [t("Livrées"), done.length], [t("Gains (net)"), da(earned)], [t("Commissions à verser"), da(unpaid)]].map(([k, v]) => (
+        {[[t("Courses en cours"), active.length], [t("Livrées"), done.length], [t("Gains nets du mois"), da(net)], [t("Commissions à verser"), da(unpaid)]].map(([k, v]) => (
           <div key={String(k)} className="card p-4 text-center"><p className="grad-text text-2xl font-extrabold">{v}</p><p className="text-xs font-bold text-slate-500">{k}</p></div>
         ))}
       </div>

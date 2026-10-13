@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "@/components/Session";
 import { Alert, Field } from "@/components/ui";
+import RoleSwitch from "@/components/RoleSwitch";
 import ContactsManager from "@/components/ContactsManager";
 import SupportContact from "@/components/SupportContact";
 import { Stars } from "@/components/RatePanel";
@@ -22,6 +23,7 @@ export default function Account() {
   const [rating, setRating] = useState<{ avg: number; count: number } | null>(null);
   const [msg, setMsg] = useState<{ k: "ok" | "error" | "info"; t: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     sb.rpc("flixi_my_change_request").then(({ data }) => setReq((data as Req) ?? null));
@@ -40,11 +42,11 @@ export default function Account() {
     const { error } = await sb.rpc("flixi_submit_change", { p_changes: Object.fromEntries(changed.map((k) => [k, vals[k].trim()])) });
     setBusy(false);
     if (error) return setMsg({ k: "error", t: t(error.message) });
-    setVals({});
+    setVals({}); setEditing(false);
     setMsg({ k: "ok", t: t("Demande de modification envoyée : l'équipe va l'examiner.") });
     sb.rpc("flixi_my_change_request").then(({ data }) => setReq((data as Req) ?? null));
   }
-  const input = (k: string, extra = "") => <input value={val(k)} onChange={(e) => setVals({ ...vals, [k]: e.target.value })} className={`input ${extra}`} />;
+  const input = (k: string, extra = "") => <input value={val(k)} onChange={(e) => setVals({ ...vals, [k]: e.target.value })} disabled={!editing} className={`input ${extra} ${editing ? "" : "bg-slate-50"}`} />;
 
   return (
     <div className="mx-auto max-w-xl space-y-5">
@@ -59,19 +61,24 @@ export default function Account() {
         <Field label={t("Téléphone principal")}><input value={profile.phone} disabled dir="ltr" className="input bg-slate-50 text-start" /></Field>
         <Field label={t("Email")}><input value={profile.email ?? ""} disabled dir="ltr" className="input bg-slate-50 text-start" /></Field>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label={t("Véhicule")}><select value={val("vehicle_type")} onChange={(e) => setVals({ ...vals, vehicle_type: e.target.value })} className="select">{[...new Set([driver.vehicle_type, ...VEHICLE_TYPES])].map((v) => <option key={v} value={v}>{t(v)}</option>)}</select></Field>
+          <Field label={t("Véhicule")}><select disabled={!editing} value={val("vehicle_type")} onChange={(e) => setVals({ ...vals, vehicle_type: e.target.value })} className="select">{[...new Set([driver.vehicle_type, ...VEHICLE_TYPES])].map((v) => <option key={v} value={v}>{t(v)}</option>)}</select></Field>
           <Field label={t("Matricule")}>{input("plate_number", "text-start")}</Field>
-          <Field label={t("Wilaya")}><select value={val("wilaya")} onChange={(e) => setVals({ ...vals, wilaya: e.target.value })} className="select">{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
+          <Field label={t("Wilaya")}><select disabled={!editing} value={val("wilaya")} onChange={(e) => setVals({ ...vals, wilaya: e.target.value })} className="select">{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
           <Field label={t("N° licence / agrément / RC")}>{input("license_number", "text-start")}</Field>
         </div>
         {pending && <Alert kind="info">⏳ {t("Une demande de modification est en cours d'examen par l'équipe.")}</Alert>}
         {req?.status === "rejected" && <Alert>{t("Votre dernière demande a été refusée.")}{req.note ? ` ${req.note}` : ""}</Alert>}
-        {changed.length > 0 && !pending && (
-          <button disabled={busy} className="btn btn-primary w-full">📨 {t("Envoyer la demande de modification")} ({changed.length})</button>
+        {!pending && !editing && <button type="button" onClick={() => setEditing(true)} className="btn btn-ghost w-full">✏ {t("Modifier mon compte")}</button>}
+        {!pending && editing && (
+          <div className="flex gap-2">
+            <button disabled={busy || changed.length === 0} className="btn btn-primary flex-1">📨 {t("Envoyer les modifications")}{changed.length > 0 ? ` (${changed.length})` : ""}</button>
+            <button type="button" onClick={() => { setEditing(false); setVals({}); }} className="btn btn-ghost">{t("Annuler")}</button>
+          </div>
         )}
-        {changed.length === 0 && !pending && <p className="text-xs text-slate-500">{t("Modifiez un champ : une icône « envoyer la demande de modification » apparaît. L'équipe valide avant que le changement soit appliqué.")}</p>}
+        <p className="text-xs text-slate-500">{t("L'équipe valide votre demande ; une fois acceptée, les modifications s'appliquent directement.")}</p>
       </form>
       {msg && <Alert kind={msg.k}>{msg.t}</Alert>}
+      <RoleSwitch to="client" />
       <div className="card p-6"><ContactsManager sb={sb} onChanged={refresh} /></div>
       <div className="card space-y-3 p-6">
         <Link href="/conditions" target="_blank" className="btn btn-ghost w-full text-sm">📄 {t("Relire les conditions d'utilisation")}</Link>

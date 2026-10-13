@@ -62,7 +62,8 @@ export type Order = {
   handling?: boolean; has_img?: boolean; length_cm?: number | null; width_cm?: number | null; height_cm?: number | null;
   want_arrival_date?: string | null; want_arrival_time?: string | null; vehicle_wanted?: string | null; urgent?: boolean; auction_hours?: number | null;
   ref?: string; handlers_count?: number; floor_no?: number | null; driver_brings_handlers?: boolean; from_commune?: string | null; to_commune?: string | null;
+  driver_done_at?: string | null; client_done_at?: string | null;
   cancel_status?: "requested" | "refused" | null; cancel_by?: "client" | "driver" | null; cancel_reason?: string | null;
 };
 /** Colonnes d'une commande SANS la photo (lourde) : la photo se charge à la demande. */
-export const ORDER_COLS = "id,client_id,goods_type,description,weight_kg,from_wilaya,from_address,from_lat,from_lng,to_wilaya,to_address,to_lat,to_lng,client_price,status,driver_id,final_price,commission,created_at,direct_driver_id,trip_id,depart_date,depart_time,auction_ends_at,auction_round,phase,winning_bid_id,handling,has_img,length_cm,width_cm,height_cm,want_arrival_date,want_arrival_time,vehicle_wanted,urgent,auction_hours,cancel_status,cancel_by,cancel_reason,ref,handlers_count,floor_no,driver_brings_handlers,from_commune,to_commune";
+export const ORDER_COLS = "id,client_id,goods_type,description,weight_kg,from_wilaya,from_address,from_lat,from_lng,to_wilaya,to_address,to_lat,to_lng,client_price,status,driver_id,final_price,commission,created_at,direct_driver_id,trip_id,depart_date,depart_time,auction_ends_at,auction_round,phase,winning_bid_id,handling,has_img,length_cm,width_cm,height_cm,want_arrival_date,want_arrival_time,vehicle_wanted,urgent,auction_hours,cancel_status,cancel_by,cancel_reason,driver_done_at,client_done_at,ref,handlers_count,floor_no,driver_brings_handlers,from_commune,to_commune";

@@ -1,16 +1,10 @@
-import { revalidatePath } from "next/cache";
 import { adminRpc } from "@/lib/admin";
 import { Pill, Table, Td } from "@/components/AdminUi";
 import { dateTimeFr } from "@/lib/format";
+import ChangeButtons from "./ChangeButtons";
 
 type C = { id: string; changes: Record<string, string>; status: "pending" | "approved" | "rejected"; note: string | null; created_at: string; name: string; phone: string; current: Record<string, string | null> };
 const LABEL: Record<string, string> = { first_name: "Prénom", last_name: "Nom", vehicle_type: "Véhicule", plate_number: "Matricule", wilaya: "Wilaya", license_number: "N° licence / agrément / RC" };
-
-async function decide(fd: FormData) {
-  "use server";
-  await adminRpc("flixi_admin_decide_change", { p_id: String(fd.get("id")), p_approve: String(fd.get("approve")) === "1", p_note: String(fd.get("note") ?? "") });
-  revalidatePath("/admin/changes");
-}
 
 export default async function Changes() {
   const rows = await adminRpc<C[]>("flixi_admin_changes", {});
@@ -25,14 +19,7 @@ export default async function Changes() {
             <Td>{Object.entries(r.changes).map(([k, v]) => <div key={k} className="text-xs"><b>{LABEL[k] ?? k}</b> : <span className="text-slate-500 line-through">{r.current[k] ?? "—"}</span> → <b>{v}</b></div>)}</Td>
             <Td>
               {r.status === "pending" ? (
-                <form action={decide} className="flex flex-col gap-2">
-                  <input type="hidden" name="id" value={r.id} />
-                  <input name="note" placeholder="Note (facultatif)" className="input !py-1.5 text-xs" />
-                  <div className="flex gap-2">
-                    <button name="approve" value="1" className="btn btn-primary !px-3 !py-1 text-xs">Accepter</button>
-                    <button name="approve" value="0" className="btn btn-danger !px-3 !py-1 text-xs">Refuser</button>
-                  </div>
-                </form>
+                <ChangeButtons id={r.id} />
               ) : <Pill tone={r.status === "approved" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}>{r.status === "approved" ? "Accepté" : "Refusé"}</Pill>}
             </Td>
           </tr>

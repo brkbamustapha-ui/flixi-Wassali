@@ -7,6 +7,7 @@ import { Alert, Field, PriceBreakdown } from "@/components/ui";
 import { GOODS_TYPES, VEHICLE_TYPES, AUCTION_HOURS, MIN_PRICE, auctionPreview } from "@/lib/format";
 import { compressImage } from "@/lib/images";
 import { getPosition } from "@/lib/location";
+import PhotoPicker from "@/components/PhotoPicker";
 import { WILAYAS, findWilaya, wilayaLabel, nearestWilaya, distKm } from "@/lib/wilayas";
 import CommunePicker from "@/components/CommunePicker";
 import { geocodeCommune, reverseCommune, matchCommune, norm, type Commune } from "@/lib/geo";
@@ -42,7 +43,7 @@ export default function NewOrder() {
   const [focus, setFocus] = useState<{ lat: number; lng: number; zoom?: number; key?: string | number } | null>(null);
   const [mapWarn, setMapWarn] = useState<{ from?: string; to?: string }>({});
   const [dims, setDims] = useState({ l: "", w: "", h: "" });
-  const [img, setImg] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [arrDate, setArrDate] = useState("");
   const [arrTime, setArrTime] = useState("");
   const [vehicle, setVehicle] = useState("");
@@ -100,11 +101,6 @@ export default function NewOrder() {
   };
   const fromOut = outside(fromPt, wf), toOut = outside(toPt, wt);
 
-  async function pickImg(f?: File) {
-    if (!f) return;
-    try { setImg(await compressImage(f, 900, 0.65)); } catch { setErr(t("Image illisible, réessayez.")); }
-  }
-
   function locate() {
     getPosition().then(({ pos }) => {
       if (!pos) return setErr(t("Impossible d'obtenir votre position. Cliquez sur la carte pour placer le point."));
@@ -129,7 +125,7 @@ export default function NewOrder() {
       from_wilaya: from, from_address: fromAddr || null, from_lat: a.lat, from_lng: a.lng,
       to_wilaya: to, to_address: toAddr || null, to_lat: b.lat, to_lng: b.lng, client_price: priceN, depart_date: dDate, depart_time: dTime,
       handling: Number(handlers) > 0, handlers_count: Number(handlers) || 0, floor_no: floor !== "" ? Number(floor) : null, driver_brings_handlers: Number(handlers) > 0 && bring,
-      from_commune: fromCom, to_commune: toCom, goods_img: img, length_cm: dims.l ? Number(dims.l) : null, width_cm: dims.w ? Number(dims.w) : null, height_cm: dims.h ? Number(dims.h) : null,
+      from_commune: fromCom, to_commune: toCom, goods_img: photos[0] ?? null, extra_imgs: photos.slice(1), length_cm: dims.l ? Number(dims.l) : null, width_cm: dims.w ? Number(dims.w) : null, height_cm: dims.h ? Number(dims.h) : null,
       want_arrival_date: arrDate || null, want_arrival_time: arrDate && arrTime ? arrTime : null, vehicle_wanted: vehicle || null, auction_hours: hours ? Number(hours) : null,
     }).select("id").single();
     if (error) { setBusy(false); return setErr(t(error.message)); }
@@ -158,15 +154,7 @@ export default function NewOrder() {
           </div>
           {Number(handlers) > 0 && <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" className="h-4 w-4 accent-pink-600" checked={bring} onChange={(e) => setBring(e.target.checked)} />{t("Le chauffeur amène les manutentionnaires avec lui")}</label>}
         </div>
-        <label className={`block cursor-pointer rounded-2xl border-2 border-dashed p-3 text-center transition ${img ? "border-emerald-300 bg-emerald-50" : "border-violet-200 hover:border-brand-pink"}`}>
-          {img
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={img} alt="" className="mx-auto h-36 w-full rounded-xl object-cover" />
-            : <div className="py-5 text-4xl">📷</div>}
-          <p className="mt-1 text-sm font-extrabold">{t("Photo de la marchandise")}</p>
-          <p className="text-xs text-slate-500">{img ? t("✔ Ajoutée — toucher pour changer") : t("Aide le transporteur à estimer le prix réel")}</p>
-          <input type="file" accept="image/*" className="hidden" onChange={(e) => pickImg(e.target.files?.[0])} />
-        </label>
+        <PhotoPicker photos={photos} onChange={setPhotos} onError={setErr} />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-3 rounded-2xl bg-orange-50/60 p-4">
             <Field label={"📍 " + t("Wilaya de départ")}><select className="select" value={from} onChange={(e) => setFrom(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{wilayaLabel(x, lang)}</option>)}</select></Field>

@@ -23,6 +23,7 @@ export function useNotifText(role: "client" | "driver") {
       case "warning": return t("Avertissement {n}/2 : au bout de 2 avertissements votre compte est banni.", { n: n.params.count ?? 1 });
       case "message": return t("Nouveau message ({r}) : {m}", { r: n.params.ref ?? "", m: n.params.text ?? "" });
       case "in_transit": return t("Votre marchandise est en route ({r})", { r });
+      case "done_wait": return t("{who} a confirmé la fin de la course {r} : confirmez à votre tour.", { who: n.params.by === "driver" ? t("Le transporteur") : t("Le client"), r });
       case "delivered": return t("Course terminée ({r}) — pensez à noter l'autre partie", { r });
       case "rating": return t("Vous avez reçu une note de {n}/5 ({r})", { n: n.params.stars ?? 0, r: n.params.ref ?? "" });
       case "ban_lifted": return t("Votre bannissement a été levé par l'équipe.");

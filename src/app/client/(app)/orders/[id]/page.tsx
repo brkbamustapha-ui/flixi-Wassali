@@ -193,6 +193,13 @@ export default function ClientOrder() {
         {order.final_price && (
           <div className="card space-y-4 p-5 sm:p-6">
             <h2 className="text-lg font-extrabold">{t("Commande conclue ✅")}</h2>
+            {order.status === "in_transit" && (order.client_done_at
+              ? <Alert kind="info">⏳ {t("Vous avez confirmé la réception. En attente de la confirmation du transporteur pour terminer la course.")}</Alert>
+              : <div className="space-y-2">
+                  {order.driver_done_at && <Alert kind="info">{t("Le transporteur indique avoir livré la marchandise.")}</Alert>}
+                  <button disabled={!!busy} onClick={() => act("done", () => sb.rpc("flixi_confirm_done", { p_order: id }))} className="btn btn-ok w-full !py-3">✔ {t("Confirmer la réception — terminer la course")}</button>
+                  <p className="text-xs text-slate-500">{t("La course n'est terminée que lorsque le client et le transporteur ont tous les deux confirmé.")}</p>
+                </div>)}
             {order.status === "delivered" && <Alert kind="info">{t("Course terminée : les informations personnelles du transporteur sont maintenant masquées ; tous les détails de la course restent affichés.")}</Alert>}
             <PriceBreakdown price={order.final_price} role="client" />
             <CancelBox order={order} busy={busy} act={act} sb={sb} id={id} cancelOpen={cancelOpen} setCancelOpen={setCancelOpen} reason={reason} setReason={setReason} />

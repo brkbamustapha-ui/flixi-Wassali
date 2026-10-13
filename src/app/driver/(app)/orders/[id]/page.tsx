@@ -115,7 +115,7 @@ export default function DriverOrder() {
             </div>
             <span className={`badge ${st.tone}`}>{t(st.label)}</span>
           </div>
-          <OrderDetails order={order} sb={sb} />
+          <OrderDetails order={order} sb={sb} maps />
         </div>
         <div className="card space-y-4 p-5 sm:p-6">
           <PriceBreakdown price={price} role="driver" />
@@ -132,7 +132,10 @@ export default function DriverOrder() {
           {err && <Alert>{err}</Alert>}
           {geoErr && <Alert>{geoErr}</Alert>}
           {order.status === "matched" && <button onClick={() => act("flixi_start_transit")} className="btn btn-primary w-full !py-3">🚚 {t("J'ai chargé la marchandise — démarrer la course")}</button>}
-          {order.status === "in_transit" && <button onClick={() => act("flixi_mark_delivered")} className="btn btn-ok w-full !py-3">✔ {t("Marchandise livrée")}</button>}
+          {order.status === "in_transit" && (order.driver_done_at
+            ? <Alert kind="info">⏳ {t("Vous avez confirmé la livraison. En attente de la confirmation du client pour terminer la course.")}</Alert>
+            : <button onClick={() => act("flixi_confirm_done")} className="btn btn-ok w-full !py-3">✔ {t("Marchandise livrée — confirmer la fin de la course")}</button>)}
+          {order.status === "in_transit" && order.client_done_at && !order.driver_done_at && <Alert kind="info">{t("Le client a déjà confirmé la réception : confirmez à votre tour pour terminer la course.")}</Alert>}
           {order.status === "delivered" && <Alert kind="ok">{t("Course terminée. Pensez à verser votre commission chaque samedi.")} {t("Les informations personnelles du client sont maintenant masquées ; tous les détails de la course restent affichés.")}</Alert>}
           {order.status === "cancelled" && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason ?? "—" })}</Alert>}
 

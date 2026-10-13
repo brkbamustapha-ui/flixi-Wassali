@@ -41,6 +41,9 @@ export const PAY_METHODS: Record<string, string> = {
 export const phoneDigits = (p: string) => p.replace(/[^\d+]/g, "");
 export const validPhoneDZ = (p: string) => /^(?:\+213|00213|0)[5-7]\d{8}$/.test(p.replace(/[\s.-]/g, ""));
 
+/** Itinéraire Google Maps vers un point (ouvre l'application Maps sur téléphone). */
+export const mapsLink = (lat: number, lng: number) => `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+
 /** Algérie = UTC+1 toute l'année */
 export const departDate = (d: string, t: string) => new Date(`${d}T${t.length === 5 ? t : t.slice(0, 5)}:00+01:00`);
 

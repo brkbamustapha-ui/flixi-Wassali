@@ -2,6 +2,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useSession } from "@/components/Session";
 import { Alert, Field } from "@/components/ui";
+import RoleSwitch from "@/components/RoleSwitch";
 import ContactsManager from "@/components/ContactsManager";
 import SupportContact from "@/components/SupportContact";
 import { Stars } from "@/components/RatePanel";
@@ -51,6 +52,7 @@ export default function Account() {
         <div className="flex gap-2"><input className="input" type="email" required dir="ltr" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="nouveau@exemple.com" /><button className="btn btn-ghost text-sm">{t("Envoyer le lien")}</button></div>
       </form>
       {msg && <Alert kind={msg.k}>{msg.t}</Alert>}
+      <RoleSwitch to="driver" />
       <div className="card p-6"><ContactsManager sb={sb} onChanged={refresh} /></div>
       <div className="card space-y-2 p-6"><p className="text-sm font-bold">{t("Besoin d'aide ?")}</p><SupportContact /></div>
     </div>
