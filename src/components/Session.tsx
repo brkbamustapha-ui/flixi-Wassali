@@ -1,4 +1,5 @@
 "use client";
+import RoleSwitch from "@/components/RoleSwitch";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -106,6 +107,7 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
               <span className="hidden text-sm font-bold sm:block">{profile.first_name}</span>
               <NotifBell sb={sb} role={role} />
               <LangSwitch />
+              <RoleSwitch to={role === "driver" ? "client" : "driver"} compact />
               <button onClick={logout} className="btn btn-ghost !px-3 !py-1.5 text-sm">{t("Quitter")}</button>
             </div>
           </div>

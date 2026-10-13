@@ -5,7 +5,7 @@ import { Alert } from "@/components/ui";
 import { useI18n } from "@/lib/i18n";
 
 /** Bascule client ↔ transporteur avec le même compte, sans se déconnecter. */
-export default function RoleSwitch({ to }: { to: "client" | "driver" }) {
+export default function RoleSwitch({ to, compact }: { to: "client" | "driver"; compact?: boolean }) {
   const { sb } = useSession();
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
@@ -16,6 +16,13 @@ export default function RoleSwitch({ to }: { to: "client" | "driver" }) {
     if (error) { setBusy(false); return setErr(error.message === "course en cours" ? t("Impossible de changer de profil : une course est en cours.") : t(error.message)); }
     const r = data as { has_driver_file: boolean };
     window.location.href = to === "client" ? "/client" : r.has_driver_file ? "/driver" : "/driver/apply";
+  }
+  if (compact) {
+    return (
+      <button onClick={go} disabled={busy} title={err || undefined} className="btn btn-primary !px-3 !py-1.5 text-sm">
+        {to === "driver" ? "🚚 " + t("Basculer vers transporteur") : "📦 " + t("Basculer vers client")}
+      </button>
+    );
   }
   return (
     <div className="card space-y-2 p-6">
