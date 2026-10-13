@@ -12,7 +12,7 @@ export function Logo({ size = 40, dark = false }: { size?: number; dark?: boolea
           <span className="grad-text">Flixi</span>
           <span className={`ml-[0.28em] ${dark ? "text-white" : "text-ink"}`}>Wassali</span>
         </span>
-        <span className="block font-bold tracking-[0.3em] text-brand-violet" style={{ fontSize: size * 0.24, marginTop: 3 }}>
+        <span className="hidden font-bold tracking-[0.3em] text-brand-violet min-[400px]:block" style={{ fontSize: size * 0.24, marginTop: 3 }}>
           وصّالي · ALGÉRIE
         </span>
       </span>

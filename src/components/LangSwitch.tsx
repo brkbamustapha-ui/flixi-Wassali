@@ -19,7 +19,7 @@ export default function LangSwitch({ dark = false }: { dark?: boolean }) {
   return (
     <div ref={ref} className="relative" dir="ltr">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open} aria-label="Language"
-        className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-bold transition ${dark ? "border-white/25 text-white hover:bg-white/10" : "border-violet-200 bg-white text-ink hover:border-brand-violet"}`}>
+        className={`flex items-center gap-1 rounded-xl border px-2 py-1.5 text-xs sm:gap-1.5 sm:px-3 sm:text-sm font-bold transition ${dark ? "border-white/25 text-white hover:bg-white/10" : "border-violet-200 bg-white text-ink hover:border-brand-violet"}`}>
         <span aria-hidden>🌐</span>{cur.short}
       </button>
       {open && (

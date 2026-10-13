@@ -90,8 +90,8 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
      <GuardWrap on={role === "driver" && !!driver && path !== "/driver/apply"} sb={sb} userId={profile.id}>
       <div className="min-h-screen pb-24 md:pb-10">
         <header className="sticky top-0 z-30 border-b border-violet-100 bg-white/85 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-            <Link href={`/${role}`}><Logo size={36} /></Link>
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3">
+            <Link href={`/${role}`} className="min-w-0 shrink"><Logo size={32} /></Link>
             <nav className="hidden gap-1 md:flex">
               {nav.map((n) => {
                 const active = n.href === `/${role}` ? path === n.href : path.startsWith(n.href);
@@ -103,12 +103,12 @@ export function AppGuard({ role, nav, children }: { role: "client" | "driver"; n
                 );
               })}
             </nav>
-            <div className="flex items-center gap-3">
-              <span className="hidden text-sm font-bold sm:block">{profile.first_name}</span>
+            <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+              <span className="hidden text-sm font-bold lg:block">{profile.first_name}</span>
               <NotifBell sb={sb} role={role} />
               <LangSwitch />
               <RoleSwitch to={role === "driver" ? "client" : "driver"} compact />
-              <button onClick={logout} className="btn btn-ghost !px-3 !py-1.5 text-sm">{t("Quitter")}</button>
+              <button onClick={logout} className="btn btn-ghost !px-2 !py-1.5 text-xs sm:!px-3 sm:text-sm">{t("Quitter")}</button>
             </div>
           </div>
         </header>

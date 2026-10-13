@@ -19,8 +19,8 @@ export default function RoleSwitch({ to, compact }: { to: "client" | "driver"; c
   }
   if (compact) {
     return (
-      <button onClick={go} disabled={busy} title={err || undefined} className="btn btn-primary !px-3 !py-1.5 text-sm">
-        {to === "driver" ? "🚚 " + t("Basculer vers transporteur") : "📦 " + t("Basculer vers client")}
+      <button onClick={go} disabled={busy} title={err || undefined} aria-label={to === "driver" ? t("Basculer vers transporteur") : t("Basculer vers client")} className="btn btn-primary !px-2.5 !py-1.5 text-sm sm:!px-3">
+        {to === "driver" ? "🚚" : "📦"}<span className="hidden sm:inline"> {to === "driver" ? t("Basculer vers transporteur") : t("Basculer vers client")}</span>
       </button>
     );
   }
