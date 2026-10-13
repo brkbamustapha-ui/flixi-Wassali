@@ -88,3 +88,7 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- Nouvelle flixi_driver_ok(uid) = dossier approuvé + compte actif, SANS condition de rôle courant ;
 -- utilisée par flixi_trip_bid, flixi_trip_bid2, flixi_book_trip, flixi_client_accept_bid, flixi_client_choose_bid
 -- pour vérifier l'autre partie. flixi_is_approved_driver (rôle requis) reste pour l'appelant transporteur.
+
+-- Commission : toujours = flixi_commission_for(final_price). Triggers flixi_orders_force_commission et
+-- flixi_commissions_sync (lignes impayées) ; anciennes commandes à 500 DA fixe recalculées (CMD-00003/9/17).
+-- « À encaisser » côté transporteur = prix convenu (jamais prix + commission).

@@ -114,7 +114,7 @@ export default function DriverHome() {
             <Link key={o.id} href={`/driver/orders/${o.id}`} className="card p-5 transition hover:-translate-y-0.5">
               <div className="flex justify-between gap-2"><p className="font-extrabold">{t(o.goods_type)}</p><span className={`badge ${ORDER_STATUS[o.status].tone}`}>{t(ORDER_STATUS[o.status].label)}</span></div>
               <p className="mt-2 text-lg font-extrabold">{w(o.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(o.to_wilaya)}</p>
-              <p className="mt-2 text-sm font-bold">{t("À encaisser : {p}", { p: da((o.final_price ?? 0) + o.commission) })} <span className="font-normal text-slate-500">· {date(o.created_at)}</span></p>
+              <p className="mt-2 text-sm font-bold">{t("À encaisser : {p}", { p: da(o.final_price ?? 0) })} <span className="font-normal text-slate-500">· {t("commission à verser : {c}", { c: da(o.commission) })} · {date(o.created_at)}</span></p>
             </Link>
           ))}
         </div>

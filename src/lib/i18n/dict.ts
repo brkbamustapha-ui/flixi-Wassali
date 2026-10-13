@@ -921,4 +921,5 @@ export const DICT: Record<string, [string, string, string]> = {
   "le transporteur amène les manutentionnaires": ["the carrier brings the handlers", "الناقل يحضر عمال الشحن", "الناقل يجيب عمال الشحن"],
   "{who} a confirmé la fin de la course {r} : confirmez à votre tour.": ["{who} confirmed the end of trip {r}: confirm in turn.", "{who} أكّد نهاية الرحلة {r}: أكّد بدورك.", "{who} أكد سالات الرحلة {r}: أكد انت زادة."],
   "Étage": ["Floor", "الطابق", "الطابق"],
+  "commission à verser : {c}": ["commission to pay: {c}", "العمولة المستحقة: {c}", "العمولة لي تخلّصها: {c}"],
 };

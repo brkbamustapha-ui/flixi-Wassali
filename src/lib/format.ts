@@ -3,6 +3,7 @@ export const MIN_PRICE = 1;
 
 /** Commission Flixi, payée par le transporteur : 12 % (< 5000 DA), 10 % (5000–8000 DA), 8 % (> 8000 DA). */
 export const commissionRate = (price: number) => (price < 5000 ? 0.12 : price <= 8000 ? 0.1 : 0.08);
+/** RÈGLE : le client paie UNIQUEMENT le prix convenu (= « à encaisser » du transporteur). La commission est à verser séparément ; net = prix − commission. Ne jamais ajouter la commission au prix. */
 export const commissionFor = (price: number) => Math.round(price * commissionRate(price));
 
 export const da = (n: number | null | undefined) =>
