@@ -55,7 +55,7 @@ export default function Splash() {
           key="intro"
           className="intro-overlay fixed inset-0 z-[9999] flex cursor-pointer items-center justify-center"
           style={{ background: "radial-gradient(900px 620px at 50% 42%, #3a1a70 0%, #1a1233 58%, #100a22 100%)" }}
-          onClick={() => { if (!introSoundPlayed()) { playIntroSound().then((ok) => { if (ok) { setMuted(false); window.setTimeout(introStore.finish, 2800); } else introStore.finish(); }); } else introStore.finish(); }}
+          onClick={() => { if (!introSoundPlayed()) { playIntroSound().then((ok) => { if (ok) { setMuted(false); window.setTimeout(introStore.finish, 3600); } else introStore.finish(); }); } else introStore.finish(); }}
           initial={{ clipPath: "inset(0 0 0% 0)" }}
           exit={{ clipPath: "inset(0 0 100% 0)" }}
           transition={{ duration: 1.1, ease: [0.76, 0, 0.24, 1] }}

@@ -1,48 +1,60 @@
 /** Son d'ouverture « Flixi Wassali » généré en direct (WebAudio, aucun fichier) :
- *  souffle de départ → moteur qui monte → arpège brillant do-mi-sol-do → étincelle finale. */
+ *  démarrage d'un tracteur diesel — démarreur qui tourne, le moteur prend, ralenti « tac-tac-tac », puis une accélération. */
 type Ctx = BaseAudioContext;
 let url: string | null = null;
 let played = false;
 
-function note(c: Ctx, out: AudioNode, freq: number, at: number, dur: number, vol: number, type: OscillatorType = "sine") {
-  const o = c.createOscillator(), g = c.createGain();
-  o.type = type; o.frequency.setValueAtTime(freq, at);
-  g.gain.setValueAtTime(0.0001, at);
-  g.gain.exponentialRampToValueAtTime(vol, at + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-  o.connect(g).connect(out); o.start(at); o.stop(at + dur + 0.05);
+function noiseBuf(c: Ctx, secs: number) {
+  const len = Math.floor(c.sampleRate * secs), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  return buf;
+}
+
+/** Un « coup » de piston : dent de scie grave + souffle d'échappement, enveloppe courte. */
+function chug(c: Ctx, out: AudioNode, at: number, f: number, vol: number, len: number, noise: AudioBuffer) {
+  const o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+  o.type = "sawtooth"; o2.type = "square"; o.frequency.setValueAtTime(f, at); o2.frequency.setValueAtTime(f * 2.01, at);
+  lp.type = "lowpass"; lp.frequency.setValueAtTime(900, at); lp.frequency.exponentialRampToValueAtTime(260, at + len);
+  g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+  const g2 = c.createGain(); g2.gain.value = 0.35;
+  o.connect(lp); o2.connect(g2).connect(lp); lp.connect(g).connect(out);
+  o.start(at); o2.start(at); o.stop(at + len + 0.03); o2.stop(at + len + 0.03);
+  const n = c.createBufferSource(), nf = c.createBiquadFilter(), ng = c.createGain();
+  n.buffer = noise; nf.type = "bandpass"; nf.frequency.value = 330; nf.Q.value = 0.8;
+  ng.gain.setValueAtTime(0.0001, at); ng.gain.exponentialRampToValueAtTime(vol * 0.55, at + 0.004); ng.gain.exponentialRampToValueAtTime(0.0001, at + len * 0.8);
+  n.connect(nf).connect(ng).connect(out); n.start(at, Math.random() * 0.5, len);
 }
 
 function jingle(c: Ctx) {
   const t0 = c.currentTime + 0.05;
-  const master = c.createGain(); master.gain.value = 0.55; master.connect(c.destination);
+  const noise = noiseBuf(c, 1);
+  const master = c.createGain(); master.gain.setValueAtTime(0.9, t0); master.gain.setValueAtTime(0.9, t0 + 3.0); master.gain.linearRampToValueAtTime(0, t0 + 3.9);
+  const tone = c.createBiquadFilter(); tone.type = "lowpass"; tone.frequency.value = 2400;
+  master.connect(tone).connect(c.destination);
 
-  // 1) souffle (bruit filtré qui monte)
-  const len = Math.floor(c.sampleRate * 0.9), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-  const n = c.createBufferSource(); n.buffer = buf;
-  const f = c.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 2;
-  f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(3200, t0 + 0.8);
-  const ng = c.createGain(); ng.gain.setValueAtTime(0.0001, t0); ng.gain.exponentialRampToValueAtTime(0.18, t0 + 0.5); ng.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.9);
-  n.connect(f).connect(ng).connect(master); n.start(t0);
-
-  // 2) moteur de camion qui monte en régime
-  const e = c.createOscillator(), eg = c.createGain();
-  e.type = "sawtooth"; e.frequency.setValueAtTime(55, t0); e.frequency.exponentialRampToValueAtTime(140, t0 + 0.9);
-  eg.gain.setValueAtTime(0.0001, t0); eg.gain.exponentialRampToValueAtTime(0.09, t0 + 0.3); eg.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.0);
-  const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 500;
-  e.connect(lp).connect(eg).connect(master); e.start(t0); e.stop(t0 + 1.05);
-
-  // 3) arpège brillant do – mi – sol – do (C5 E5 G5 C6)
-  [523.25, 659.25, 783.99, 1046.5].forEach((fr, i) => {
-    const at = t0 + 0.75 + i * 0.16;
-    note(c, master, fr, at, 0.55, 0.22, "triangle");
-    note(c, master, fr * 2, at, 0.35, 0.05, "sine");
-  });
-  // 4) accord final + étincelle
-  const end = t0 + 1.5;
-  [523.25, 659.25, 783.99, 1046.5].forEach((fr) => note(c, master, fr, end, 1.3, 0.12, "sine"));
-  [2093, 2637, 3136].forEach((fr, i) => note(c, master, fr, end + 0.05 + i * 0.07, 0.4, 0.05, "sine"));
+  // 1) démarreur : « rrr-rrr-rrr » qui s'accélère (≈ 1 s)
+  const cr = 0.95;
+  for (let t = 0, i = 0; t < cr; i++) {
+    const period = 0.17 - 0.06 * (t / cr);
+    chug(c, master, t0 + t, 48 + 14 * (t / cr), 0.42, period * 0.85, noise);
+    t += period;
+  }
+  // 2) le moteur « prend » : coup plus fort puis ralenti irrégulier qui monte en régime
+  const catchAt = t0 + cr + 0.05;
+  chug(c, master, catchAt, 62, 0.8, 0.22, noise);
+  let t = 0.2, i = 0;
+  while (t < 2.35) {
+    const rpm = 7.5 + 7 * Math.min(1, t / 2.2);          // coups par seconde
+    const f = 58 + 22 * Math.min(1, t / 2.2);            // hauteur
+    chug(c, master, catchAt + t, f, 0.55 + (i % 2 ? 0.08 : 0), 0.13, noise);
+    t += (1 / rpm) * (0.92 + 0.16 * Math.random());      // petite irrégularité de diesel
+    i++;
+  }
+  // 3) fumée / souffle d'échappement qui s'estompe
+  const sm = c.createBufferSource(), sf = c.createBiquadFilter(), sg = c.createGain();
+  sm.buffer = noise; sm.loop = true; sf.type = "lowpass"; sf.frequency.value = 500;
+  sg.gain.setValueAtTime(0.0001, catchAt); sg.gain.exponentialRampToValueAtTime(0.12, catchAt + 0.4); sg.gain.exponentialRampToValueAtTime(0.0001, catchAt + 2.6);
+  sm.connect(sf).connect(sg).connect(master); sm.start(catchAt); sm.stop(catchAt + 2.7);
 }
 
 /** Rend le jingle en fichier WAV (hors ligne) : joué via <audio>, il fonctionne aussi quand le téléphone est en mode silencieux. */
@@ -50,7 +62,7 @@ async function render(): Promise<string | null> {
   if (url) return url;
   try {
     const OAC = window.OfflineAudioContext || (window as unknown as { webkitOfflineAudioContext: typeof OfflineAudioContext }).webkitOfflineAudioContext;
-    const rate = 44100, oc = new OAC(1, rate * 3.6, rate);
+    const rate = 44100, oc = new OAC(1, rate * 4.2, rate);
     jingle(oc);
     const buf = await oc.startRendering();
     const d = buf.getChannelData(0), pcm = new DataView(new ArrayBuffer(44 + d.length * 2));
