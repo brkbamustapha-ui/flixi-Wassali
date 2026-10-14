@@ -1,5 +1,5 @@
 /** Son d'ouverture « Flixi Wassali » généré en direct (WebAudio, aucun fichier) :
- *  démarrage d'un tracteur diesel — démarreur qui tourne, le moteur prend, ralenti « tac-tac-tac », puis une accélération. */
+ *  signature de marque : camion qui démarre, coup de klaxon, carillon montant. */
 type Ctx = BaseAudioContext;
 let url: string | null = null;
 let played = false;
@@ -25,36 +25,52 @@ function chug(c: Ctx, out: AudioNode, at: number, f: number, vol: number, len: n
   n.connect(nf).connect(ng).connect(out); n.start(at, Math.random() * 0.5, len);
 }
 
+/** Note de carillon (triangle + harmonique) : la « signature » brillante de l'application. */
+function chime(c: Ctx, out: AudioNode, at: number, f: number, vol: number, len: number) {
+  for (const [mul, v, type] of [[1, vol, "triangle"], [2, vol * 0.25, "sine"], [3, vol * 0.08, "sine"]] as const) {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f * mul, at);
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(v, at + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+    o.connect(g).connect(out); o.start(at); o.stop(at + len + 0.05);
+  }
+}
+
+/** Klaxon de camion à deux tons (do#4 + mi4, tierce) avec attaque et relâchement doux. */
+function horn(c: Ctx, out: AudioNode, at: number, len: number, vol: number) {
+  const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 560; bp.Q.value = 0.7;
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + 0.03); g.gain.setValueAtTime(vol, at + len - 0.05); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+  bp.connect(g).connect(out);
+  for (const f of [277.2, 349.2]) for (const det of [-1.5, 1.5]) {
+    const o = c.createOscillator(); o.type = "sawtooth"; o.frequency.setValueAtTime(f + det, at);
+    o.connect(bp); o.start(at); o.stop(at + len + 0.05);
+  }
+}
+
+/** Signature sonore de l'application : un camion démarre → coup de klaxon → carillon montant (do-mi-sol) qui conclut. */
 function jingle(c: Ctx) {
   const t0 = c.currentTime + 0.05;
   const noise = noiseBuf(c, 1);
-  const master = c.createGain(); master.gain.setValueAtTime(0.9, t0); master.gain.setValueAtTime(0.9, t0 + 3.0); master.gain.linearRampToValueAtTime(0, t0 + 3.9);
-  const tone = c.createBiquadFilter(); tone.type = "lowpass"; tone.frequency.value = 2400;
+  const master = c.createGain();
+  master.gain.setValueAtTime(0.9, t0); master.gain.setValueAtTime(0.9, t0 + 3.0); master.gain.linearRampToValueAtTime(0, t0 + 3.9);
+  const tone = c.createBiquadFilter(); tone.type = "lowpass"; tone.frequency.value = 5000;
   master.connect(tone).connect(c.destination);
 
-  // 1) démarreur : « rrr-rrr-rrr » qui s'accélère (≈ 1 s)
-  const cr = 0.95;
-  for (let t = 0, i = 0; t < cr; i++) {
-    const period = 0.17 - 0.06 * (t / cr);
-    chug(c, master, t0 + t, 48 + 14 * (t / cr), 0.42, period * 0.85, noise);
-    t += period;
+  // 1) moteur : 4 tours de démarreur puis le moteur prend et monte en régime (≈ 1 s)
+  for (let i = 0; i < 4; i++) chug(c, master, t0 + i * 0.13, 48 + i * 5, 0.38, 0.11, noise);
+  let t = 0.55, i = 0;
+  while (t < 1.25) {
+    const k = Math.min(1, (t - 0.55) / 0.7);
+    chug(c, master, t0 + t, 60 + 38 * k, 0.55, 0.1, noise);
+    t += 1 / (9 + 9 * k) * (0.94 + 0.12 * Math.random()); i++;
   }
-  // 2) le moteur « prend » : coup plus fort puis ralenti irrégulier qui monte en régime
-  const catchAt = t0 + cr + 0.05;
-  chug(c, master, catchAt, 62, 0.8, 0.22, noise);
-  let t = 0.2, i = 0;
-  while (t < 2.35) {
-    const rpm = 7.5 + 7 * Math.min(1, t / 2.2);          // coups par seconde
-    const f = 58 + 22 * Math.min(1, t / 2.2);            // hauteur
-    chug(c, master, catchAt + t, f, 0.55 + (i % 2 ? 0.08 : 0), 0.13, noise);
-    t += (1 / rpm) * (0.92 + 0.16 * Math.random());      // petite irrégularité de diesel
-    i++;
-  }
-  // 3) fumée / souffle d'échappement qui s'estompe
-  const sm = c.createBufferSource(), sf = c.createBiquadFilter(), sg = c.createGain();
-  sm.buffer = noise; sm.loop = true; sf.type = "lowpass"; sf.frequency.value = 500;
-  sg.gain.setValueAtTime(0.0001, catchAt); sg.gain.exponentialRampToValueAtTime(0.12, catchAt + 0.4); sg.gain.exponentialRampToValueAtTime(0.0001, catchAt + 2.6);
-  sm.connect(sf).connect(sg).connect(master); sm.start(catchAt); sm.stop(catchAt + 2.7);
+  // 2) klaxon « pi-piiin »
+  horn(c, master, t0 + 1.3, 0.17, 0.2);
+  horn(c, master, t0 + 1.55, 0.42, 0.2);
+  // 3) carillon montant do-mi-sol + octave brillante, qui s'ouvre sur l'écran d'accueil
+  [523.25, 659.25, 783.99].forEach((f, k) => chime(c, master, t0 + 2.05 + k * 0.14, f, 0.2, 0.9));
+  chime(c, master, t0 + 2.5, 1046.5, 0.22, 1.3);
+  chime(c, master, t0 + 2.56, 1568, 0.07, 1.1);
 }
 
 /** Rend le jingle en fichier WAV (hors ligne) : joué via <audio>, il fonctionne aussi quand le téléphone est en mode silencieux. */
