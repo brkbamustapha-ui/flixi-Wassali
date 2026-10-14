@@ -1,15 +1,8 @@
 /** Son d'ouverture « Flixi Wassali » généré en direct (WebAudio, aucun fichier) :
  *  souffle de départ → moteur qui monte → arpège brillant do-mi-sol-do → étincelle finale. */
-type Ctx = AudioContext;
-let ctx: Ctx | null = null;
+type Ctx = BaseAudioContext;
+let url: string | null = null;
 let played = false;
-
-const getCtx = (): Ctx | null => {
-  try {
-    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    return ctx ?? (ctx = new AC());
-  } catch { return null; }
-};
 
 function note(c: Ctx, out: AudioNode, freq: number, at: number, dur: number, vol: number, type: OscillatorType = "sine") {
   const o = c.createOscillator(), g = c.createGain();
@@ -52,18 +45,35 @@ function jingle(c: Ctx) {
   [2093, 2637, 3136].forEach((fr, i) => note(c, master, fr, end + 0.05 + i * 0.07, 0.4, 0.05, "sine"));
 }
 
-/** Joue le son une seule fois ; si le navigateur bloque l'audio avant le premier geste, attend le premier toucher. */
-export function playIntroSound() {
-  if (played) return;
-  const c = getCtx();
-  if (!c) return;
-  const go = () => {
-    if (played) return;
-    c.resume().then(() => { if (c.state === "running" && !played) { played = true; jingle(c); } }).catch(() => {});
-  };
-  go();
-  if (c.state !== "running") {
-    const once = () => { go(); window.removeEventListener("pointerdown", once); window.removeEventListener("keydown", once); };
-    window.addEventListener("pointerdown", once); window.addEventListener("keydown", once);
-  }
+/** Rend le jingle en fichier WAV (hors ligne) : joué via <audio>, il fonctionne aussi quand le téléphone est en mode silencieux. */
+async function render(): Promise<string | null> {
+  if (url) return url;
+  try {
+    const OAC = window.OfflineAudioContext || (window as unknown as { webkitOfflineAudioContext: typeof OfflineAudioContext }).webkitOfflineAudioContext;
+    const rate = 44100, oc = new OAC(1, rate * 3.6, rate);
+    jingle(oc);
+    const buf = await oc.startRendering();
+    const d = buf.getChannelData(0), pcm = new DataView(new ArrayBuffer(44 + d.length * 2));
+    const w = (o: number, t: string) => [...t].forEach((ch, i) => pcm.setUint8(o + i, ch.charCodeAt(0)));
+    w(0, "RIFF"); pcm.setUint32(4, 36 + d.length * 2, true); w(8, "WAVE"); w(12, "fmt "); pcm.setUint32(16, 16, true);
+    pcm.setUint16(20, 1, true); pcm.setUint16(22, 1, true); pcm.setUint32(24, rate, true); pcm.setUint32(28, rate * 2, true);
+    pcm.setUint16(32, 2, true); pcm.setUint16(34, 16, true); w(36, "data"); pcm.setUint32(40, d.length * 2, true);
+    for (let i = 0; i < d.length; i++) pcm.setInt16(44 + i * 2, Math.max(-1, Math.min(1, d[i])) * 0x7fff, true);
+    return (url = URL.createObjectURL(new Blob([pcm.buffer], { type: "audio/wav" })));
+  } catch { return null; }
+}
+
+export const introSoundPlayed = () => played;
+
+/** Tente de jouer le son (une seule fois). Renvoie false si le navigateur exige d'abord un toucher. */
+export async function playIntroSound(): Promise<boolean> {
+  if (played) return true;
+  const u = await render();
+  if (!u) return false;
+  try {
+    const a = new Audio(u); a.volume = 1;
+    await a.play();
+    played = true;
+    return true;
+  } catch { return false; }
 }

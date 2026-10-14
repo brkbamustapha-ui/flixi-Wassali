@@ -924,4 +924,5 @@ export const DICT: Record<string, [string, string, string]> = {
   "commission à verser : {c}": ["commission to pay: {c}", "العمولة المستحقة: {c}", "العمولة لي تخلّصها: {c}"],
   "Charge en route : vous pouvez choisir un départ et une arrivée entre ces deux wilayas.": ["Loads en route: you can pick a pickup and drop-off between these two wilayas.", "يحمّل في الطريق: يمكنك اختيار الانطلاق والوصول بين هاتين الولايتين.", "يشحن في الطريق: تقدر تختار الانطلاق والوصول بين هاد الولايتين."],
   "vous ne pouvez pas enchérir sur votre propre annonce": ["you cannot bid on your own announcement", "لا يمكنك المزايدة على إعلانك الخاص", "ما تقدرش تزايد على الإعلان تاعك"],
+  "Toucher pour activer le son": ["Tap to turn the sound on", "المس لتشغيل الصوت", "المس باش يخدم الصوت"],
 };

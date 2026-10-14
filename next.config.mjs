@@ -6,6 +6,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
   "font-src 'self' data:",
+  "media-src 'self' blob: data:",
   `connect-src 'self' ${SUPABASE} wss://erycxlrmptzwamyvajbv.supabase.co https://nominatim.openstreetmap.org`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
