@@ -28,6 +28,7 @@ export default function DriverOrder() {
   const [err, setErr] = useState("");
   const lastSent = useRef(0);
   const [mode, setMode] = useState<"" | "cancel" | "goods" | "noshow">("");
+  const [problem, setProblem] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [cancels, setCancels] = useState(0);
@@ -152,11 +153,14 @@ export default function DriverOrder() {
           {order.cancel_status === "requested" && order.cancel_by === "driver" && <Alert kind="info">⏳ {t("Votre demande d'annulation attend la réponse du client. L'équipe est alertée.")}</Alert>}
           {order.cancel_status === "refused" && order.cancel_by === "driver" && <Alert>{t("Le client a refusé l'annulation.")}</Alert>}
 
-          {["matched", "in_transit"].includes(order.status) && order.cancel_status !== "requested" && (
+          {order.status === "matched" && order.cancel_status !== "requested" && !problem && (
+            <button onClick={() => setProblem(true)} className="w-full text-center text-xs font-bold text-slate-500 underline">{t("Un problème avec cette course ?")}</button>
+          )}
+          {order.status === "matched" && order.cancel_status !== "requested" && problem && (
             <div className="space-y-2 rounded-2xl border border-rose-100 bg-rose-50/40 p-4 text-sm">
-              <p className="font-extrabold">{t("Un problème avec cette course ?")}</p>
+              <div className="flex items-center justify-between"><p className="font-extrabold">{t("Un problème avec cette course ?")}</p><button onClick={() => { setProblem(false); setMode(""); setReason(""); }} className="text-xs font-bold text-slate-500">✕</button></div>
               <div className="flex flex-wrap gap-2">
-                {order.status === "matched" && <button onClick={() => setMode("cancel")} className="btn btn-ghost !py-1.5 text-sm">{t("Annuler la course")}</button>}
+                <button onClick={() => setMode("cancel")} className="btn btn-ghost !py-1.5 text-sm">{t("Annuler la course")}</button>
                 <button onClick={() => setMode("goods")} className="btn btn-ghost !py-1.5 text-sm">⛔ {t("Marchandise interdite / dangereuse / non conforme")}</button>
                 <button onClick={() => setMode("noshow")} className="btn btn-ghost !py-1.5 text-sm">🚫 {t("Le client n'a pas chargé la marchandise")}</button>
               </div>

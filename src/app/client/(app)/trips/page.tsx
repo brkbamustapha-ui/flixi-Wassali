@@ -7,7 +7,7 @@ import { AuctionBanner } from "@/components/Countdown";
 import TripBidModal, { PublicTrip } from "@/components/TripBidModal";
 import { Stars } from "@/components/RatePanel";
 import { da, departDate } from "@/lib/format";
-import { WILAYAS } from "@/lib/wilayas";
+import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 
 type MyBid = {
@@ -58,7 +58,17 @@ export default function ClientTrips() {
   }
 
   if (!trips) return <Spinner />;
-  const list = trips.filter((x) => (!from || x.from_wilaya === from) && (!toF || x.to_wilaya === toF));
+  /** Annonce « charge en route » : le départ et l'arrivée du client peuvent être n'importe quelles wilayas du trajet, dans le sens du trajet. */
+  const matches = (x: PublicTrip) => {
+    if ((!from || x.from_wilaya === from) && (!toF || x.to_wilaya === toF)) return true;
+    if (!x.allow_enroute || (!from && !toF)) return false;
+    const a = findWilaya(x.from_wilaya), b = findWilaya(x.to_wilaya);
+    if (!a || !b) return false;
+    const names = wilayasAlong(a, b).map((v) => v.name);
+    const i = from ? names.indexOf(from) : 0, j = toF ? names.indexOf(toF) : names.length - 1;
+    return i >= 0 && j >= 0 && i < j;
+  };
+  const list = trips.filter(matches);
   const myActive = mine.filter((m) => ["active", "won", "accepted"].includes(m.status));
 
   return (
@@ -116,6 +126,7 @@ export default function ClientTrips() {
                 </div>
                 <p className="mt-3 text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)}</p>
                 <p className="mt-1 text-sm text-slate-600">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })} · {t(x.vehicle_type)}</p>
+                {x.allow_enroute && <p className="mt-1 text-xs font-bold text-emerald-700">🛣 {t("Charge en route : vous pouvez choisir un départ et une arrivée entre ces deux wilayas.")}</p>}
                 {x.note && <p className="mt-2 text-sm text-slate-500">{x.note}</p>}
 
                 <div className="mt-3 space-y-2">

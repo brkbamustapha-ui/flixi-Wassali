@@ -4,6 +4,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { INTRO_SESSION_KEY } from "@/lib/intro";
 import { useI18n } from "@/lib/i18n";
 import { LogoIntro } from "./LogoIntro";
+import { playIntroSound } from "@/lib/introSound";
 
 /* --- état partagé (comme un rideau d'ouverture : joué une fois par session) --- */
 type IntroState = "playing" | "done";
@@ -34,6 +35,7 @@ export default function Splash() {
     if (done) return;
     const root = document.documentElement;
     root.style.overflow = "hidden";
+    if (!reduce) playIntroSound();
     const safety = window.setTimeout(introStore.finish, reduce ? 500 : 5200);
     window.addEventListener("keydown", introStore.finish, { once: true });
     return () => {

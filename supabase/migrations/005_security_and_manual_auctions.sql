@@ -96,3 +96,5 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- Audit : exécution retirée (authenticated/anon) sur les RPC obsolètes qui contournaient les règles
 -- (flixi_trip_bid, flixi_book_trip, flixi_driver_confirm_bid, flixi_driver_decline_bid, flixi_close_auction_now,
 -- flixi_cancel_order, flixi_trip_close_now). Fin de course uniquement via flixi_confirm_done (double confirmation).
+
+-- flixi_trip_bid2 : refuse l'enchère du transporteur sur sa propre annonce (même en mode client).
