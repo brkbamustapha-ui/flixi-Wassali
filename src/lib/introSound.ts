@@ -75,17 +75,33 @@ async function render(): Promise<string | null> {
   } catch { return null; }
 }
 
-export const introSoundPlayed = () => played;
+let audio: HTMLAudioElement | null = null;
+export const introSoundPlaying = () => audio !== null;
 
-/** Tente de jouer le son (une seule fois). Renvoie false si le navigateur exige d'abord un toucher. */
+/** Tente de jouer le son (une seule fois). Renvoie false si le navigateur exige d'abord un geste de l'utilisateur. */
+let starting = false;
 export async function playIntroSound(): Promise<boolean> {
   if (played) return true;
+  if (starting) return false;
+  starting = true;
+  try { return await start(); } finally { starting = false; }
+}
+
+async function start(): Promise<boolean> {
   const u = await render();
   if (!u) return false;
   try {
     const a = new Audio(u); a.volume = 1;
     await a.play();
-    played = true;
+    audio = a; played = true;
     return true;
   } catch { return false; }
+}
+
+/** Coupe le son en fondu quand l'animation se termine (le son ne doit jamais déborder sur le reste de l'application). */
+export function stopIntroSound() {
+  const a = audio; audio = null; played = true;
+  if (!a) return;
+  const step = () => { if (a.volume > 0.12) { a.volume = Math.max(0, a.volume - 0.12); setTimeout(step, 30); } else { a.pause(); a.src = ""; } };
+  step();
 }

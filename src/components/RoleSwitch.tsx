@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useSession } from "@/components/Session";
 import { Alert } from "@/components/ui";
 import { useI18n } from "@/lib/i18n";
+import { INTRO_SESSION_KEY } from "@/lib/intro";
 
 /** Bascule client ↔ transporteur avec le même compte, sans se déconnecter. */
 export default function RoleSwitch({ to, compact }: { to: "client" | "driver"; compact?: boolean }) {
@@ -15,6 +16,7 @@ export default function RoleSwitch({ to, compact }: { to: "client" | "driver"; c
     const { data, error } = await sb.rpc("flixi_switch_role", { p_role: to });
     if (error) { setBusy(false); return setErr(error.message === "course en cours" ? t("Impossible de changer de profil : une course est en cours.") : t(error.message)); }
     const r = data as { has_driver_file: boolean };
+    try { sessionStorage.setItem(INTRO_SESSION_KEY, "1"); } catch {} // pas d'animation ni de son lors d'une bascule
     window.location.href = to === "client" ? "/client" : r.has_driver_file ? "/driver" : "/driver/apply";
   }
   if (compact) {
