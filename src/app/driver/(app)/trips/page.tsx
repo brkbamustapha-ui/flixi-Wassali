@@ -175,10 +175,10 @@ export default function Trips() {
                 <button className="btn btn-danger !px-3 !py-1 text-xs" onClick={async () => { if (!confirm(t("Arrêter cette annonce ? Plus aucun client ne pourra enchérir. Les commandes déjà acceptées restent valables."))) return; await sb.from("flixi_trips").update({ status: "closed" }).eq("id", x.id); load(); }}>⏹ {t("Arrêter l'annonce")}</button>
               </div>
 
-              {(x.orders?.length ?? 0) > 0 && (
+              {(x.orders?.filter((o) => ["matched", "in_transit"].includes(o.status)).length ?? 0) > 0 && (
                 <div className="rounded-2xl bg-emerald-50 p-3 text-sm">
-                  <p className="font-extrabold text-emerald-800">✔ {t("{n} commande(s) acceptée(s) sur cette annonce", { n: x.orders!.length })}</p>
-                  <div className="mt-1 flex flex-wrap gap-2">{x.orders!.map((o) => <Link key={o.id} href={`/driver/orders/${o.id}`} className="badge bg-white text-emerald-700 ring-1 ring-emerald-200">{o.ref} · {da(o.price)} →</Link>)}</div>
+                  <p className="font-extrabold text-emerald-800">✔ {t("{n} commande(s) acceptée(s) sur cette annonce", { n: x.orders!.filter((o) => ["matched", "in_transit"].includes(o.status)).length })}</p>
+                  <div className="mt-1 flex flex-wrap gap-2">{x.orders!.filter((o) => ["matched", "in_transit"].includes(o.status)).map((o) => <Link key={o.id} href={`/driver/orders/${o.id}`} className="badge bg-white text-emerald-700 ring-1 ring-emerald-200">{o.ref} · {da(o.price)} →</Link>)}</div>
                   <p className="mt-1 text-xs text-emerald-900">{t("L'annonce reste ouverte : vous pouvez accepter d'autres clients tant qu'il vous reste de la place. Arrêtez-la quand vous voulez.")}</p>
                 </div>
               )}

@@ -925,4 +925,12 @@ export const DICT: Record<string, [string, string, string]> = {
   "Charge en route : vous pouvez choisir un départ et une arrivée entre ces deux wilayas.": ["Loads en route: you can pick a pickup and drop-off between these two wilayas.", "يحمّل في الطريق: يمكنك اختيار الانطلاق والوصول بين هاتين الولايتين.", "يشحن في الطريق: تقدر تختار الانطلاق والوصول بين هاد الولايتين."],
   "vous ne pouvez pas enchérir sur votre propre annonce": ["you cannot bid on your own announcement", "لا يمكنك المزايدة على إعلانك الخاص", "ما تقدرش تزايد على الإعلان تاعك"],
   "Toucher pour activer le son": ["Tap to turn the sound on", "المس لتشغيل الصوت", "المس باش يخدم الصوت"],
+  "Aucun transporteur n'annonce de trajet au départ de {w} ou passant par {w} pour le moment. Publiez quand même votre commande : ils vous enverront des offres.": ["No carrier is announcing a trip leaving from or passing through {w} right now. Publish your order anyway: they will send you offers.", "لا يوجد ناقل يعلن عن رحلة انطلاقًا من {w} أو مرورًا بها حاليًا. انشر طلبك مع ذلك: سيرسلون لك عروضًا.", "ما كاين حتى ناقل معلن رحلة تنطلق من {w} ولا تعدي عليها دروك. انشر الطلب تاعك بصح: يبعثولك عروض."],
+  "{n} transporteur(s) disponible(s) au départ de {w} ou passant par {w}": ["{n} carrier(s) available leaving from or passing through {w}", "{n} ناقل (ناقلين) متاح ينطلق من {w} أو يمر بها", "{n} ناقل متاح ينطلق من {w} ولا يعدي عليها"],
+  "passe par {w}": ["passes through {w}", "يمر بـ {w}", "يعدي على {w}"],
+  "Meilleure offre : {p}": ["Best offer: {p}", "أفضل عرض: {p}", "أحسن عرض: {p}"],
+  "Voir tous les transporteurs disponibles": ["See all available carriers", "عرض كل الناقلين المتاحين", "شوف كامل الناقلين المتاحين"],
+  "Aucune course en cours": ["No trip in progress", "لا توجد رحلة جارية", "ما كاين حتى رحلة جارية"],
+  "vous ne pouvez pas enchérir sur votre propre commande": ["you cannot bid on your own order", "لا يمكنك المزايدة على طلبك الخاص", "ما تقدرش تزايد على الطلب تاعك"],
+  "vous ne pouvez pas être transporteur de votre propre commande": ["you cannot be the carrier of your own order", "لا يمكنك أن تكون ناقل طلبك الخاص", "ما تقدرش تكون الناقل تاع الطلب تاعك"],
 };

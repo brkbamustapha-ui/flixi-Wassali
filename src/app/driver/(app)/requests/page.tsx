@@ -69,7 +69,7 @@ export default function Requests() {
 
   const load = useCallback(async () => {
     await sb.rpc("flixi_settle_all");
-    const { data: o } = await sb.from("flixi_orders").select(ORDER_COLS).eq("status", "open").order("created_at", { ascending: false });
+    const { data: o } = await sb.from("flixi_orders").select(ORDER_COLS).eq("status", "open").neq("client_id", profile.id).order("created_at", { ascending: false });
     const list = (o as unknown as Order[]) ?? [];
     const { data: b } = await sb.from("flixi_bids").select("id,order_id,price,status").eq("driver_id", profile.id);
     const { data: s } = list.length ? await sb.rpc("flixi_order_stats", { p_ids: list.map((x) => x.id) }) : { data: [] };

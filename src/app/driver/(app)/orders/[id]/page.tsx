@@ -140,7 +140,7 @@ export default function DriverOrder() {
           {order.status === "delivered" && <Alert kind="ok">{t("Course terminée. Pensez à verser votre commission chaque samedi.")} {t("Les informations personnelles du client sont maintenant masquées ; tous les détails de la course restent affichés.")}</Alert>}
           {order.status === "cancelled" && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason ?? "—" })}</Alert>}
 
-          {order.cancel_status === "requested" && order.cancel_by === "client" && ["matched", "in_transit"].includes(order.status) && (
+          {order.cancel_status === "requested" && order.cancel_by === "client" && order.status === "matched" && (
             <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-sm">
               <p className="font-extrabold">⚠ {t("Le client demande l'annulation de la course.")}</p>
               <p className="mt-1">{t("Motif : {r}", { r: order.cancel_reason ?? "" })}</p>

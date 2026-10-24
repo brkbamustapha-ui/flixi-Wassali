@@ -98,3 +98,8 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- flixi_cancel_order, flixi_trip_close_now). Fin de course uniquement via flixi_confirm_done (double confirmation).
 
 -- flixi_trip_bid2 : refuse l'enchère du transporteur sur sa propre annonce (même en mode client).
+
+-- Lot « historique / chargement / auto-enchère / transporteurs disponibles » (appliqué via MCP) :
+-- * flixi_driver_cancel et flixi_report_no_show : uniquement tant que la commande est « matched » (avant chargement) ;
+-- * trigger flixi_no_self_deal (flixi_bids, flixi_orders) : un compte ne peut pas enchérir sur / transporter sa propre commande ;
+-- * flixi_my_trip_bids : ajoute order_status pour masquer les enchères dont la course est terminée.

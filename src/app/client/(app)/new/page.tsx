@@ -8,6 +8,7 @@ import { GOODS_TYPES, VEHICLE_TYPES, AUCTION_HOURS, MIN_PRICE, auctionPreview } 
 import { compressImage } from "@/lib/images";
 import { getPosition } from "@/lib/location";
 import PhotoPicker from "@/components/PhotoPicker";
+import AvailableDrivers from "@/components/AvailableDrivers";
 import { WILAYAS, findWilaya, wilayaLabel, nearestWilaya, distKm } from "@/lib/wilayas";
 import CommunePicker from "@/components/CommunePicker";
 import { geocodeCommune, reverseCommune, matchCommune, norm, type Commune } from "@/lib/geo";
@@ -167,6 +168,7 @@ export default function NewOrder() {
             <Field label={t("Adresse d'arrivée")}><input className="input" value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
           </div>
         </div>
+        <AvailableDrivers from={from} to={to} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={"🗓 " + t("Date de départ")}><input className="input" type="date" min={today} required value={dDate} onChange={(e) => setDDate(e.target.value)} dir="ltr" /></Field>
           <Field label={"🕗 " + t("Heure de départ")}><input className="input" type="time" required value={dTime} onChange={(e) => setDTime(e.target.value)} dir="ltr" /></Field>

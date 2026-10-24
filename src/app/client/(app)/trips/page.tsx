@@ -7,12 +7,13 @@ import { AuctionBanner } from "@/components/Countdown";
 import TripBidModal, { PublicTrip } from "@/components/TripBidModal";
 import { Stars } from "@/components/RatePanel";
 import { da, departDate } from "@/lib/format";
-import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
+import { WILAYAS } from "@/lib/wilayas";
+import { tripServes } from "@/lib/tripMatch";
 import { useI18n } from "@/lib/i18n";
 
 type MyBid = {
   id: string; price: number; status: string; goods_type: string; trip_id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string;
-  phase: string; trip_status: string; auction_ends_at: string | null; order_id: string | null; driver_first_name: string | null; ref?: string; best: number | null;
+  phase: string; trip_status: string; order_status?: string | null; auction_ends_at: string | null; order_id: string | null; driver_first_name: string | null; ref?: string; best: number | null;
 };
 
 function OfferList({ offers, empty, title }: { offers: { price: number; mine: boolean; won: boolean }[]; empty: string; title: string }) {
@@ -49,6 +50,7 @@ export default function ClientTrips() {
     setMine((b.data as MyBid[]) ?? []);
   }, [sb]);
   useEffect(() => { load(); const i = setInterval(load, 10000); return () => clearInterval(i); }, [load]);
+  useEffect(() => { const q = new URLSearchParams(window.location.search); setFrom(q.get("from") ?? ""); setToF(q.get("to") ?? ""); }, []);
 
   async function withdraw(tripId: string) {
     setErr("");
@@ -58,18 +60,9 @@ export default function ClientTrips() {
   }
 
   if (!trips) return <Spinner />;
-  /** Annonce « charge en route » : le départ et l'arrivée du client peuvent être n'importe quelles wilayas du trajet, dans le sens du trajet. */
-  const matches = (x: PublicTrip) => {
-    if ((!from || x.from_wilaya === from) && (!toF || x.to_wilaya === toF)) return true;
-    if (!x.allow_enroute || (!from && !toF)) return false;
-    const a = findWilaya(x.from_wilaya), b = findWilaya(x.to_wilaya);
-    if (!a || !b) return false;
-    const names = wilayasAlong(a, b).map((v) => v.name);
-    const i = from ? names.indexOf(from) : 0, j = toF ? names.indexOf(toF) : names.length - 1;
-    return i >= 0 && j >= 0 && i < j;
-  };
+  const matches = (x: PublicTrip) => tripServes(x, from, toF);
   const list = trips.filter(matches);
-  const myActive = mine.filter((m) => ["active", "won", "accepted"].includes(m.status));
+  const myActive = mine.filter((m) => ["active", "won", "accepted"].includes(m.status) && !(m.status === "accepted" && m.order_status && ["delivered", "cancelled"].includes(m.order_status)));
 
   return (
     <div className="space-y-5">
