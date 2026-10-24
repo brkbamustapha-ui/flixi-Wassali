@@ -20,6 +20,7 @@ type TBid = {
   length_cm?: number | null; width_cm?: number | null; height_cm?: number | null; handlers_count?: number; floor_no?: number | null; driver_brings_handlers?: boolean; has_img?: boolean;
 };
 type Trip = {
+  from_address?: string | null; to_address?: string | null; from_lat?: number | null; from_lng?: number | null;
   id: string; from_wilaya: string; to_wilaya: string; from_commune?: string | null; to_commune?: string | null; allow_enroute?: boolean; depart_date: string; depart_time: string; price: number | null; note: string | null;
   ref?: string; orders?: { id: string; ref: string; price: number; status: string }[]; parent_order_id?: string | null; status: string; phase: string; urgent?: boolean; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
 };
@@ -69,6 +70,7 @@ export default function Trips() {
   const [enroute, setEnroute] = useState(false);
   const [dDate, setDDate] = useState("");
   const [dTime, setDTime] = useState("08:00");
+  const [edit, setEdit] = useState<Trip | null>(null);
   const today = new Date().toISOString().slice(0, 10);
   const preview = auctionPreview(dDate, dTime);
 
@@ -90,6 +92,18 @@ export default function Trips() {
     if (!preview) return setErr(t("Choisissez la date et l'heure de départ."));
     if (!preview.ok) return setErr(t("Le départ doit être dans au moins 10 minutes."));
     setBusy(true);
+    if (edit) {
+      const { error } = await sb.rpc("flixi_update_trip", { p_trip: edit.id, p_data: {
+        from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom, to_commune: toCom,
+        from_address: String(f.get("from_address") || "") || null, to_address: String(f.get("to_address") || "") || null,
+        from_lat: fromPt?.lat ?? null, from_lng: fromPt?.lng ?? null, allow_enroute: enroute,
+        depart_date: dDate, depart_time: dTime, price, note: String(f.get("note") || "") || null,
+      } });
+      setBusy(false);
+      if (error) return setErr(t(error.message));
+      setEdit(null); form.reset(); setDDate(""); setDTime("08:00"); setFromCom(""); setToCom(""); setFromPt(null); setEnroute(false);
+      return load();
+    }
     const { error } = await sb.from("flixi_trips").insert({
       driver_id: profile.id, from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom, to_commune: toCom,
       from_address: String(f.get("from_address") || "") || null, to_address: String(f.get("to_address") || "") || null,
@@ -101,6 +115,15 @@ export default function Trips() {
     form.reset(); setDDate(""); setDTime("08:00"); setFromCom(""); setToCom(""); setFromPt(null); setEnroute(false);
     load();
   }
+
+  function startEdit(x: Trip) {
+    setErr(""); setEdit(x);
+    setFromW(x.from_wilaya); setToW(x.to_wilaya); setFromCom(x.from_commune ?? ""); setToCom(x.to_commune ?? "");
+    setFromPt(x.from_lat != null && x.from_lng != null ? { lat: x.from_lat, lng: x.from_lng } : null);
+    setEnroute(!!x.allow_enroute); setDDate(x.depart_date); setDTime(x.depart_time.slice(0, 5));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function cancelEdit() { setEdit(null); setFromCom(""); setToCom(""); setFromPt(null); setEnroute(false); setDDate(""); setDTime("08:00"); }
 
   async function chooseBid(id: string) {
     setErr("");
@@ -128,21 +151,22 @@ export default function Trips() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-5">
-      <form onSubmit={add} className="card space-y-4 p-5 lg:col-span-2 lg:self-start">
-        <h1 className="text-xl font-extrabold">{t("Annoncer un trajet")}</h1>
+      <form key={edit?.id ?? "new"} onSubmit={add} className="card space-y-4 p-5 lg:col-span-2 lg:self-start">
+        <h1 className="text-xl font-extrabold">{edit ? t("Modifier mon trajet") : t("Annoncer un trajet")}</h1>
+        {edit && <Alert kind="info">✏ {t("Vous pouvez modifier votre annonce tant qu'aucune offre n'a été faite.")}</Alert>}
         <p className="text-sm text-slate-500">{t("Les clients voient votre trajet et enchérissent : le prix le plus élevé gagne quand vous terminez l'enchère, puis vous acceptez ou refusez.")}</p>
         {!approved && <Alert kind="info">{t("Disponible après l'approbation de votre dossier.")}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
           <div className="space-y-3 rounded-2xl bg-orange-50/60 p-4">
             <Field label={"📍 " + t("Wilaya de départ")}><select className="select" value={fromW} onChange={(e) => { setFromW(e.target.value); setFromCom(""); }}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
             <CommunePicker code={fw.code} value={fromCom} onChange={setFromCom} label={t("Commune de départ")} />
-            <Field label={t("Adresse de départ")}><input name="from_address" className="input" placeholder={t("Rue, repère…")} /></Field>
+            <Field label={t("Adresse de départ")}><input name="from_address" defaultValue={edit?.from_address ?? ""} className="input" placeholder={t("Rue, repère…")} /></Field>
             <button type="button" onClick={async () => { const { pos, denied } = await getPosition(); if (!pos) return setErr(denied ? t("Activez la localisation de votre appareil pour ajouter votre position.") : t("Impossible d'obtenir votre position.")); setFromPt({ lat: pos.lat, lng: pos.lng }); }} className="btn btn-ghost w-full !py-1.5 text-sm">🎯 {fromPt ? t("Position ajoutée ✔") : t("Ajouter ma position (départ)")}</button>
           </div>
           <div className="space-y-3 rounded-2xl bg-violet-50 p-4">
             <Field label={"🏁 " + t("Wilaya de destination")}><select className="select" value={toW} onChange={(e) => { setToW(e.target.value); setToCom(""); }}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
             <CommunePicker code={tw.code} value={toCom} onChange={setToCom} label={t("Commune d'arrivée")} />
-            <Field label={t("Adresse d'arrivée")}><input name="to_address" className="input" placeholder={t("Rue, repère…")} /></Field>
+            <Field label={t("Adresse d'arrivée")}><input name="to_address" defaultValue={edit?.to_address ?? ""} className="input" placeholder={t("Rue, repère…")} /></Field>
           </div>
         </div>
         <label className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm font-bold"><input type="checkbox" className="mt-1 h-4 w-4 accent-pink-600" checked={enroute} onChange={(e) => setEnroute(e.target.checked)} /><span>🛣 {t("Je peux charger en route (place restante dans le véhicule)")}<span className="block text-xs font-semibold text-slate-600">{t("Les clients choisiront leur départ et leur arrivée parmi les wilayas situées entre vos deux points, dans la même annonce.")}</span></span></label>
@@ -153,10 +177,11 @@ export default function Trips() {
         {preview && !preview.ok && <Alert>{t("Le départ doit être dans au moins 10 minutes.")}</Alert>}
         {preview?.ok && preview.urgent && <Alert kind="info">⚡ {t("Trajet EXPRESS (départ dans moins de 2 heures) : il sera mis en avant auprès des clients, qui peuvent profiter d'un prix bas.")}</Alert>}
         {preview?.ok && !preview.urgent && <Alert kind="info">🔓 {t("L'enchère reste ouverte à tous les clients jusqu'à ce que vous la terminiez.")}</Alert>}
-        <Field label={t("Prix à partir de (DA, optionnel)")} hint={t("Prix libre. Les clients peuvent accepter ce prix tout de suite ou enchérir.")}><input name="price" type="number" min={MIN_PRICE} step={1} className="input" dir="ltr" /></Field>
-        <Field label={t("Note (capacité, type de marchandise…)")}><input name="note" className="input" /></Field>
+        <Field label={t("Prix à partir de (DA, optionnel)")} hint={t("Prix libre. Les clients peuvent accepter ce prix tout de suite ou enchérir.")}><input name="price" defaultValue={edit?.price ?? ""} type="number" min={MIN_PRICE} step={1} className="input" dir="ltr" /></Field>
+        <Field label={t("Note (capacité, type de marchandise…)")}><input name="note" defaultValue={edit?.note ?? ""} className="input" /></Field>
         {err && <Alert>{err}</Alert>}
-        <button disabled={busy || !approved} className="btn btn-primary w-full">{t("Publier le trajet")}</button>
+        <button disabled={busy || !approved} className="btn btn-primary w-full">{edit ? t("Enregistrer les modifications") : t("Publier le trajet")}</button>
+        {edit && <button type="button" onClick={cancelEdit} className="btn btn-ghost w-full">{t("Annuler")}</button>}
       </form>
 
       <div className="space-y-4 lg:col-span-3">
@@ -172,7 +197,10 @@ export default function Trips() {
                   <p className="text-xs font-extrabold text-brand-pink">{x.ref}</p><p className="text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)} {x.urgent && <span className="badge bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}</p>
                   <p className="text-sm text-slate-600">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}{x.price ? ` · ${t("Prix annoncé : {p}", { p: da(x.price) })}` : ""}</p>
                 </div>
-                <button className="btn btn-danger !px-3 !py-1 text-xs" onClick={async () => { if (!confirm(t("Arrêter cette annonce ? Plus aucun client ne pourra enchérir. Les commandes déjà acceptées restent valables."))) return; await sb.from("flixi_trips").update({ status: "closed" }).eq("id", x.id); load(); }}>⏹ {t("Arrêter l'annonce")}</button>
+                <div className="flex flex-wrap gap-2">
+                  {x.bids.length === 0 && (x.orders?.length ?? 0) === 0 && <button className="btn btn-ghost !px-3 !py-1 text-xs" onClick={() => startEdit(x)}>✏ {t("Modifier")}</button>}
+                  <button className="btn btn-danger !px-3 !py-1 text-xs" onClick={async () => { if (!confirm(t("Arrêter cette annonce ? Plus aucun client ne pourra enchérir. Les commandes déjà acceptées restent valables."))) return; await sb.from("flixi_trips").update({ status: "closed" }).eq("id", x.id); load(); }}>⏹ {t("Arrêter l'annonce")}</button>
+                </div>
               </div>
 
               {(x.orders?.filter((o) => ["matched", "in_transit"].includes(o.status)).length ?? 0) > 0 && (

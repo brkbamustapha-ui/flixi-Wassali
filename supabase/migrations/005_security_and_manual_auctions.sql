@@ -106,3 +106,7 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 
 -- Véhicules : flixi_vehicle_cat / flixi_vehicle_ok (catégories moto, utilitaire, camion, lourd, dépannage ; voiture normale retirée du choix) ;
 -- flixi_no_self_deal refuse aussi une enchère / un transporteur dont le véhicule ne correspond pas à vehicle_wanted.
+
+-- Modification d'annonce (appliqué via MCP) : flixi_update_order (client, commande ouverte sans aucune offre) et
+-- flixi_update_trip (transporteur, trajet ouvert sans offre ni commande) ; recalcul urgent / fin d'enchère ;
+-- flixi_my_trips_overview expose from_address, to_address, from_lat, from_lng pour préremplir le formulaire.

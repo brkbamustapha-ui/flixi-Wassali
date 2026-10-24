@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -105,6 +106,9 @@ export default function ClientOrder() {
           </div>
           <p className="mt-4 text-sm font-bold">{t("Votre prix de départ : {p}", { p: da(order.client_price) })}</p>
           <OrderDetails order={order} sb={sb} />
+          {order.status === "open" && bids.length === 0 && (
+            <Link href={`/client/new?edit=${order.id}`} className="btn btn-ghost mt-3 w-full !py-2 text-sm">✏ {t("Modifier mon annonce")} <span className="text-xs font-semibold text-slate-500">({t("possible tant qu'aucune offre n'est reçue")})</span></Link>
+          )}
         </div>
 
         {err && <Alert>{err}</Alert>}
