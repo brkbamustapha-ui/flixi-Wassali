@@ -60,8 +60,6 @@ export default function Requests() {
   const [busy, setBusy] = useState("");
   const [online, setOnline] = useState<number | null>(null);
   const [corr, setCorr] = useState(false);
-  const [ra, setRa] = useState(driver?.wilaya && findWilaya(driver.wilaya) ? driver.wilaya : "Alger");
-  const [rb, setRb] = useState("Oran");
   const approved = driver?.approval === "approved";
 
   const load = useCallback(async () => {
@@ -107,7 +105,8 @@ export default function Requests() {
   }
 
   // Filtre « adapter à mon trajet » : seules les demandes dont départ ET arrivée sont sur ma route (dans le bon sens)
-  const route = useMemo(() => (corr && findWilaya(ra) && findWilaya(rb) && ra !== rb ? wilayasAlong(findWilaya(ra)!, findWilaya(rb)!).map((x) => x.name) : null), [corr, ra, rb]);
+  // Le trajet adapté = le départ et l'arrivée déjà choisis dans les filtres ci-dessus (aucune saisie en double)
+  const route = useMemo(() => (corr && findWilaya(from) && findWilaya(to) && from !== to ? wilayasAlong(findWilaya(from)!, findWilaya(to)!).map((x) => x.name) : null), [corr, from, to]);
   const myVehicle = driver?.vehicle_type;
   // Adapter à mon trajet : le filtre départ/arrivée est remplacé par ma route (seules les demandes dont départ ET arrivée sont sur ma route, dans le bon sens).
   const fits = useMemo(() => (orders ?? []).filter((o) => vehicleOk(myVehicle, o.vehicle_wanted)), [orders, myVehicle]);
@@ -124,20 +123,15 @@ export default function Requests() {
       {err && <Alert>{err}</Alert>}
 
 
-      {!route && <div className="card grid gap-3 p-4 sm:grid-cols-2">
+      <div className="card grid gap-3 p-4 sm:grid-cols-2">
         <select className="select" value={from} onChange={(e) => setFrom(e.target.value)}><option value="">{t("Départ : toutes les wilayas")}</option>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select>
         <select className="select" value={to} onChange={(e) => setTo(e.target.value)}><option value="">{t("Arrivée : toutes les wilayas")}</option>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select>
-      </div>}
+      </div>
 
       <div className="card space-y-3 p-4">
         <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" className="h-4 w-4 accent-pink-600" checked={corr} onChange={(e) => setCorr(e.target.checked)} />🧭 {t("Adapter les demandes à mon trajet (là où je veux aller)")}</label>
-        {corr && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <select className="select" value={ra} onChange={(e) => setRa(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{t("Je pars de : {w}", { w: w(x.name) })}</option>)}</select>
-            <select className="select" value={rb} onChange={(e) => setRb(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{t("Je vais à : {w}", { w: w(x.name) })}</option>)}</select>
-            {route && <p className="text-xs font-semibold text-slate-600 sm:col-span-2">{t("Demandes situées sur votre route : {r}", { r: route.map((n) => w(n)).join(" → ") })}</p>}
-          </div>
-        )}
+        {corr && !route && <p className="text-xs font-semibold text-amber-700">{t("Choisissez votre départ et votre arrivée dans les filtres ci-dessus : les demandes seront adaptées à ce trajet.")}</p>}
+        {corr && route && <p className="text-xs font-semibold text-slate-600">{t("Demandes situées sur votre route : {r}", { r: route.map((n) => w(n)).join(" → ") })}</p>}
       </div>
 
       {(

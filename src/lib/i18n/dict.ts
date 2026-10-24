@@ -948,4 +948,5 @@ export const DICT: Record<string, [string, string, string]> = {
   "possible tant qu'aucune offre n'est reçue": ["possible until an offer is received", "ممكن ما دام لم يصل أي عرض", "ممكن مادام ما جاك حتى عرض"],
   "Modifier mon trajet": ["Edit my trip", "تعديل رحلتي", "عدّل الرحلة تاعي"],
   "Vous pouvez modifier votre annonce tant qu'aucune offre n'a été faite.": ["You can edit your announcement as long as no offer has been made.", "يمكنك تعديل إعلانك ما دام لم يُقدَّم أي عرض.", "تقدر تعدّل الإعلان تاعك مادام ما تقدم حتى عرض."],
+  "Choisissez votre départ et votre arrivée dans les filtres ci-dessus : les demandes seront adaptées à ce trajet.": ["Choose your departure and arrival in the filters above: requests will be adapted to this route.", "اختر الانطلاق والوصول في المرشحات أعلاه: ستُكيَّف الطلبات مع هذا المسار.", "اختار الانطلاق والوصول في الفلاتر لفوق: الطلبات تتكيّف مع هاد الطريق."],
 };
