@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSession } from "@/components/Session";
 import { Stars } from "@/components/RatePanel";
 import { da } from "@/lib/format";
-import { tripPassesFrom, tripServes, canLoadIn } from "@/lib/tripMatch";
+import { tripPassesFrom, tripServes } from "@/lib/tripMatch";
 import { vehicleOk } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
@@ -30,15 +30,13 @@ export default function AvailableDrivers({ from, to, vehicle }: { from: string; 
       <p className="text-sm font-extrabold text-emerald-800">🚚 {t("{n} transporteur(s) disponible(s) au départ de {w} ou passant par {w}", { n: list.length, w: w(from) })}</p>
       <div className="space-y-1.5">
         {list.slice(0, 5).map((x) => {
-          const can = canLoadIn(x, from);
           const cls = "flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white p-2.5 text-sm shadow-sm";
           const inner = (<>
             <span><b>{w(x.from_wilaya)} → {w(x.to_wilaya)}</b> {x.from_wilaya !== from ? <span className="badge bg-emerald-100 text-emerald-700">🛣 {t("passe par {w}", { w: w(from) })}</span> : null}{x.urgent ? <span className="badge ms-1 bg-rose-100 text-rose-700">⚡</span> : null}
               <span className="block text-xs text-slate-500">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })} · {t(x.vehicle_type)} {(x.rating_count ?? 0) > 0 ? <Stars value={x.rating ?? 0} /> : null}</span></span>
             <span className="text-xs font-bold text-slate-600">{x.best ? t("Meilleure offre : {p}", { p: da(x.best) }) : x.price ? t("Prix annoncé : {p}", { p: da(x.price) }) : ""}</span>
-            {!can && <span className="basis-full text-xs font-semibold text-amber-700">{t("Il passe par {w} : publiez votre commande, il la verra et pourra vous proposer un prix.", { w: w(from) })}</span>}
           </>);
-          return can ? <Link key={x.id} href={`/client/trips${q}`} className={cls}>{inner}</Link> : <div key={x.id} className={cls}>{inner}</div>;
+          return <Link key={x.id} href={`/client/trips${q}`} className={cls}>{inner}</Link>;
         })}
       </div>
       <Link href={`/client/trips${q}`} className="btn btn-ghost w-full !py-1.5 text-sm">{t("Voir tous les transporteurs disponibles")} →</Link>

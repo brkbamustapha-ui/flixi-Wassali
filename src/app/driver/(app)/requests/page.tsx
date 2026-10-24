@@ -10,7 +10,6 @@ import { pingNow } from "@/lib/location";
 import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
-import type { PublicTrip } from "@/components/TripBidModal";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-2xl bg-violet-100" /> });
 type Bid = { id: string; order_id: string; price: number; status: string };
@@ -51,11 +50,9 @@ function NetPreview({ value }: { value: string }) {
 export default function Requests() {
   const { sb, profile, driver } = useSession();
   const { t, w, date } = useI18n();
-  const [tab, setTab] = useState<"orders" | "trips">("orders");
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
   const [stats, setStats] = useState<Record<string, Stat>>({});
-  const [trips, setTrips] = useState<PublicTrip[]>([]);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [prices, setPrices] = useState<Record<string, string>>({});
@@ -73,13 +70,11 @@ export default function Requests() {
     const list = (o as unknown as Order[]) ?? [];
     const { data: b } = await sb.from("flixi_bids").select("id,order_id,price,status").eq("driver_id", profile.id);
     const { data: s } = list.length ? await sb.rpc("flixi_order_stats", { p_ids: list.map((x) => x.id) }) : { data: [] };
-    const { data: tr } = await sb.rpc("flixi_available_trips");
     const { data: oc } = await sb.rpc("flixi_online_counts");
     setOnline((oc as { drivers: number } | null)?.drivers ?? null);
     setOrders(list);
     setBids((b as Bid[]) ?? []);
     setStats(Object.fromEntries(((s as Stat[]) ?? []).map((x) => [x.order_id, x])));
-    setTrips((tr as PublicTrip[]) ?? []);
   }, [sb, profile.id]);
   useEffect(() => { load(); const i = setInterval(load, 8000); return () => clearInterval(i); }, [load]);
 
@@ -119,7 +114,6 @@ export default function Requests() {
   const list = useMemo(() => fits.filter((o) => (route ? route.indexOf(o.from_wilaya) >= 0 && route.indexOf(o.to_wilaya) >= route.indexOf(o.from_wilaya) && route.indexOf(o.to_wilaya) >= 0 : (!from || o.from_wilaya === from) && (!to || o.to_wilaya === to))), [fits, from, to, route]);
   const hiddenByVehicle = (orders?.length ?? 0) - fits.length;
   const markers = useMemo(() => list.filter((o) => o.from_lat != null).map((o) => ({ lat: o.from_lat!, lng: o.from_lng!, color: "#ff2e7e", emoji: "📦", label: `${t(o.goods_type)} → ${w(o.to_wilaya)} · ${da(o.client_price)}` })), [list, t, w]);
-  const tripList = trips.filter((x) => route ? true : (!from || x.from_wilaya === from) && (!to || x.to_wilaya === to));
 
   if (!orders) return <Spinner />;
   return (
@@ -129,10 +123,6 @@ export default function Requests() {
       {online !== null && <p className="text-sm font-bold text-emerald-700">🟢 {t("{n} transporteurs en ligne en ce moment", { n: online })}</p>}
       {err && <Alert>{err}</Alert>}
 
-      <div className="grid grid-cols-2 rounded-xl bg-violet-50 p-1 text-sm font-bold">
-        <button onClick={() => setTab("orders")} className={`rounded-lg py-2 ${tab === "orders" ? "bg-white text-brand-pink shadow" : "text-slate-500"}`}>📦 {t("Demandes des clients")} ({list.length})</button>
-        <button onClick={() => setTab("trips")} className={`rounded-lg py-2 ${tab === "trips" ? "bg-white text-brand-pink shadow" : "text-slate-500"}`}>🚚 {t("Trajets annoncés")} ({trips.length})</button>
-      </div>
 
       {!route && <div className="card grid gap-3 p-4 sm:grid-cols-2">
         <select className="select" value={from} onChange={(e) => setFrom(e.target.value)}><option value="">{t("Départ : toutes les wilayas")}</option>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select>
@@ -150,7 +140,7 @@ export default function Requests() {
         )}
       </div>
 
-      {tab === "orders" && (
+      {(
         <>
           {hiddenByVehicle > 0 && <p className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800">🚚 {t("{n} demande(s) masquée(s) : elles demandent un autre type de véhicule que le vôtre ({v}).", { n: hiddenByVehicle, v: t(myVehicle ?? "—") })}</p>}
           {markers.length > 0 && <MapView height={260} markers={markers} />}
@@ -214,25 +204,6 @@ export default function Requests() {
         </>
       )}
 
-      {tab === "trips" && (
-        tripList.length === 0 ? <Empty icon="🚚" title={t("Aucun transporteur sur ce trajet")} /> : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {tripList.map((x) => (
-              <div key={x.id} className="card p-5">
-                <div className="flex items-center justify-between"><span className="badge bg-violet-100 text-violet-700">🚚 {x.is_mine ? t("Votre trajet") : t("Transporteur")}</span>{x.urgent && <span className="badge bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}<span className="text-xs font-bold text-slate-500">{t(x.deliveries > 1 ? "{n} livraisons" : "{n} livraison", { n: x.deliveries })}</span></div>
-                <p className="mt-3 text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)}</p>
-                <p className="mt-1 text-sm text-slate-600">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })} · {t(x.vehicle_type)}</p>
-                <div className="mt-3 space-y-2">
-                  {x.phase === "bidding" ? <AuctionBanner depart={departDate(x.depart_date, x.depart_time)} round={x.round} who="driver" />
-                    : <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">🏆 {t("Enchère terminée — le transporteur confirme le gagnant")}</p>}
-                  {x.price ? <p className="text-xs font-semibold text-slate-600">{t("Prix annoncé : {p}", { p: da(x.price) })}</p> : null}
-                  <OfferList offers={x.offers} empty={t("Aucune offre pour l'instant")} title={t("Toutes les offres ({n})", { n: x.bids })} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
     </div>
   );
 }

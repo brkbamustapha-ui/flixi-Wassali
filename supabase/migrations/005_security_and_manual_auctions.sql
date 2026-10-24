@@ -110,3 +110,6 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- Modification d'annonce (appliqué via MCP) : flixi_update_order (client, commande ouverte sans aucune offre) et
 -- flixi_update_trip (transporteur, trajet ouvert sans offre ni commande) ; recalcul urgent / fin d'enchère ;
 -- flixi_my_trips_overview expose from_address, to_address, from_lat, from_lng pour préremplir le formulaire.
+
+-- flixi_available_trips : réservé au mode client (un transporteur ne voit pas les trajets annoncés des autres).
+-- Côté client : un trajet n'est proposé que s'il part de la wilaya du client, ou la traverse ET que le transporteur a coché « charger en route ».

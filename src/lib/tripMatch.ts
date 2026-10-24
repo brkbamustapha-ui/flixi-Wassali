@@ -15,10 +15,11 @@ export function tripServes(x: T, from: string, to: string): boolean {
   return i >= 0 && j >= 0 && i < j;
 }
 
-/** Trajets qui PARTENT de la wilaya du client ou la TRAVERSENT (que le transporteur charge en route ou non). */
+/** Trajets qui PARTENT de la wilaya du client, ou la TRAVERSENT mais seulement si le transporteur a coché « charger en route ». */
 export const tripPassesFrom = (x: T, from: string) => {
   if (!from) return false;
   if (x.from_wilaya === from) return true;
+  if (!x.allow_enroute) return false;
   const a = findWilaya(x.from_wilaya), b = findWilaya(x.to_wilaya);
   if (!a || !b) return false;
   const names = wilayasAlong(a, b).map((v) => v.name);
