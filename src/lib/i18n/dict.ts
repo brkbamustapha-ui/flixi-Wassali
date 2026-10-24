@@ -933,4 +933,8 @@ export const DICT: Record<string, [string, string, string]> = {
   "Aucune course en cours": ["No trip in progress", "لا توجد رحلة جارية", "ما كاين حتى رحلة جارية"],
   "vous ne pouvez pas enchérir sur votre propre commande": ["you cannot bid on your own order", "لا يمكنك المزايدة على طلبك الخاص", "ما تقدرش تزايد على الطلب تاعك"],
   "vous ne pouvez pas être transporteur de votre propre commande": ["you cannot be the carrier of your own order", "لا يمكنك أن تكون ناقل طلبك الخاص", "ما تقدرش تكون الناقل تاع الطلب تاعك"],
+  "Il passe par {w} : publiez votre commande, il la verra et pourra vous proposer un prix.": ["He passes through {w}: publish your order, he will see it and can offer you a price.", "يمر بـ {w}: انشر طلبك وسيراه ويمكنه أن يقترح عليك سعرًا.", "يعدي على {w}: انشر الطلب تاعك، يشوفو ويقدر يقترحلك ثمن."],
+  "{n} demande(s) masquée(s) : elles demandent un autre type de véhicule que le vôtre ({v}).": ["{n} request(s) hidden: they ask for a different vehicle type than yours ({v}).", "{n} طلب (طلبات) مخفي: تطلب نوع مركبة مختلفًا عن مركبتك ({v}).", "{n} طلب مخبي: يحتاجو نوع كاميو آخر غير تاعك ({v})."],
+  "Camionnette (Doblo, Berlingo, Kangoo…)": ["Van-type light vehicle (Doblo, Berlingo, Kangoo…)", "شاحنة صغيرة (دوبلو، برلينغو، كانغو…)", "كميونيط (دوبلو، برلينغو، كانغو…)"],
+  "véhicule non adapté à cette demande": ["vehicle not suited to this request", "المركبة غير مناسبة لهذا الطلب", "الكاميو ما يناسبش هاد الطلب"],
 };

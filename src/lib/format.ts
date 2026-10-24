@@ -29,10 +29,27 @@ export const GOODS_TYPES = [
   "Marchandises en gros", "Palettes", "Véhicule / Moto", "Produits agricoles", "Équipements industriels", "Autre",
 ];
 
+/** Véhicules COMMERCIAUX uniquement (pas de voiture normale : berline, citadine…). */
 export const VEHICLE_TYPES = [
-  "Moto / Scooter", "Voiture (véhicule normal)", "Camionnette (Berlingo, Kangoo…)", "Fourgon (Master, Sprinter…)", "Camion léger (3-5 t)", "Camion (10 t)",
-  "Semi-remorque", "Plateau / Benne", "Camion frigorifique", "Dépanneuse (dépannage)", "Porte-char", "Autre",
+  "Moto / Scooter", "Camionnette (Doblo, Berlingo, Kangoo…)", "Fourgon (Master, Sprinter…)", "Camion léger (3-5 t)", "Camion (10 t)",
+  "Plateau / Benne", "Camion frigorifique", "Semi-remorque", "Porte-char", "Dépanneuse (dépannage)", "Autre",
 ];
+
+/** Catégorie d'un véhicule : une demande n'est montrée qu'aux transporteurs de la même catégorie (miroir de flixi_vehicle_cat en base). */
+export const vehicleCategory = (v?: string | null) => {
+  if (!v || !v.trim()) return "any";
+  if (/moto|scooter/i.test(v)) return "moto";
+  if (/camionnette|utilitaire|doblo|kangoo|berlingo|fourgon|master|sprinter|jumpy|partner/i.test(v)) return "utilitaire";
+  if (/semi|porte-char/i.test(v)) return "lourd";
+  if (/camion|plateau|benne|frigo/i.test(v)) return "camion";
+  if (/panneuse/i.test(v)) return "depannage";
+  if (/voiture/i.test(v)) return "voiture";
+  return "any";
+};
+export const vehicleOk = (driverV?: string | null, wantedV?: string | null) => {
+  const w = vehicleCategory(wantedV), d = vehicleCategory(driverV);
+  return w === "any" || d === "any" || w === d;
+};
 
 export const PAY_METHODS: Record<string, string> = {
   edahabia: "Edahabia", cib: "CIB", visa: "Visa", mastercard: "Mastercard", especes: "Espèces",

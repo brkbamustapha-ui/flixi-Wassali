@@ -168,7 +168,7 @@ export default function NewOrder() {
             <Field label={t("Adresse d'arrivée")}><input className="input" value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
           </div>
         </div>
-        <AvailableDrivers from={from} to={to} />
+        <AvailableDrivers from={from} to={to} vehicle={vehicle} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={"🗓 " + t("Date de départ")}><input className="input" type="date" min={today} required value={dDate} onChange={(e) => setDDate(e.target.value)} dir="ltr" /></Field>
           <Field label={"🕗 " + t("Heure de départ")}><input className="input" type="time" required value={dTime} onChange={(e) => setDTime(e.target.value)} dir="ltr" /></Field>

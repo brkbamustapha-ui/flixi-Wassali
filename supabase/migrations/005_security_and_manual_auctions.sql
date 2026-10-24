@@ -103,3 +103,6 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- * flixi_driver_cancel et flixi_report_no_show : uniquement tant que la commande est « matched » (avant chargement) ;
 -- * trigger flixi_no_self_deal (flixi_bids, flixi_orders) : un compte ne peut pas enchérir sur / transporter sa propre commande ;
 -- * flixi_my_trip_bids : ajoute order_status pour masquer les enchères dont la course est terminée.
+
+-- Véhicules : flixi_vehicle_cat / flixi_vehicle_ok (catégories moto, utilitaire, camion, lourd, dépannage ; voiture normale retirée du choix) ;
+-- flixi_no_self_deal refuse aussi une enchère / un transporteur dont le véhicule ne correspond pas à vehicle_wanted.

@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useSession } from "@/components/Session";
 import { Alert, Empty, Spinner } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
-import { MIN_PRICE, da, departDate, commissionFor, commissionRate } from "@/lib/format";
+import { MIN_PRICE, da, departDate, commissionFor, commissionRate, vehicleOk } from "@/lib/format";
 import OrderDetails from "@/components/OrderDetails";
 import { pingNow } from "@/lib/location";
 import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
@@ -113,9 +113,13 @@ export default function Requests() {
 
   // Filtre « adapter à mon trajet » : seules les demandes dont départ ET arrivée sont sur ma route (dans le bon sens)
   const route = useMemo(() => (corr && findWilaya(ra) && findWilaya(rb) && ra !== rb ? wilayasAlong(findWilaya(ra)!, findWilaya(rb)!).map((x) => x.name) : null), [corr, ra, rb]);
-  const list = useMemo(() => (orders ?? []).filter((o) => (!from || o.from_wilaya === from) && (!to || o.to_wilaya === to) && (!route || (route.indexOf(o.from_wilaya) >= 0 && route.indexOf(o.to_wilaya) >= route.indexOf(o.from_wilaya) && route.indexOf(o.to_wilaya) >= 0))), [orders, from, to, route]);
+  const myVehicle = driver?.vehicle_type;
+  // Adapter à mon trajet : le filtre départ/arrivée est remplacé par ma route (seules les demandes dont départ ET arrivée sont sur ma route, dans le bon sens).
+  const fits = useMemo(() => (orders ?? []).filter((o) => vehicleOk(myVehicle, o.vehicle_wanted)), [orders, myVehicle]);
+  const list = useMemo(() => fits.filter((o) => (route ? route.indexOf(o.from_wilaya) >= 0 && route.indexOf(o.to_wilaya) >= route.indexOf(o.from_wilaya) && route.indexOf(o.to_wilaya) >= 0 : (!from || o.from_wilaya === from) && (!to || o.to_wilaya === to))), [fits, from, to, route]);
+  const hiddenByVehicle = (orders?.length ?? 0) - fits.length;
   const markers = useMemo(() => list.filter((o) => o.from_lat != null).map((o) => ({ lat: o.from_lat!, lng: o.from_lng!, color: "#ff2e7e", emoji: "📦", label: `${t(o.goods_type)} → ${w(o.to_wilaya)} · ${da(o.client_price)}` })), [list, t, w]);
-  const tripList = trips.filter((x) => (!from || x.from_wilaya === from) && (!to || x.to_wilaya === to));
+  const tripList = trips.filter((x) => route ? true : (!from || x.from_wilaya === from) && (!to || x.to_wilaya === to));
 
   if (!orders) return <Spinner />;
   return (
@@ -126,14 +130,14 @@ export default function Requests() {
       {err && <Alert>{err}</Alert>}
 
       <div className="grid grid-cols-2 rounded-xl bg-violet-50 p-1 text-sm font-bold">
-        <button onClick={() => setTab("orders")} className={`rounded-lg py-2 ${tab === "orders" ? "bg-white text-brand-pink shadow" : "text-slate-500"}`}>📦 {t("Demandes des clients")} ({orders.length})</button>
+        <button onClick={() => setTab("orders")} className={`rounded-lg py-2 ${tab === "orders" ? "bg-white text-brand-pink shadow" : "text-slate-500"}`}>📦 {t("Demandes des clients")} ({list.length})</button>
         <button onClick={() => setTab("trips")} className={`rounded-lg py-2 ${tab === "trips" ? "bg-white text-brand-pink shadow" : "text-slate-500"}`}>🚚 {t("Trajets annoncés")} ({trips.length})</button>
       </div>
 
-      <div className="card grid gap-3 p-4 sm:grid-cols-2">
+      {!route && <div className="card grid gap-3 p-4 sm:grid-cols-2">
         <select className="select" value={from} onChange={(e) => setFrom(e.target.value)}><option value="">{t("Départ : toutes les wilayas")}</option>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select>
         <select className="select" value={to} onChange={(e) => setTo(e.target.value)}><option value="">{t("Arrivée : toutes les wilayas")}</option>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select>
-      </div>
+      </div>}
 
       <div className="card space-y-3 p-4">
         <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" className="h-4 w-4 accent-pink-600" checked={corr} onChange={(e) => setCorr(e.target.checked)} />🧭 {t("Adapter les demandes à mon trajet (là où je veux aller)")}</label>
@@ -148,6 +152,7 @@ export default function Requests() {
 
       {tab === "orders" && (
         <>
+          {hiddenByVehicle > 0 && <p className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800">🚚 {t("{n} demande(s) masquée(s) : elles demandent un autre type de véhicule que le vôtre ({v}).", { n: hiddenByVehicle, v: t(myVehicle ?? "—") })}</p>}
           {markers.length > 0 && <MapView height={260} markers={markers} />}
           {list.length === 0 ? <Empty icon="📭" title={t("Aucune demande ouverte")} text={t("Revenez bientôt ou annoncez votre trajet.")} /> : (
             <div className="grid gap-4 md:grid-cols-2">

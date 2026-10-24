@@ -15,14 +15,15 @@ export function tripServes(x: T, from: string, to: string): boolean {
   return i >= 0 && j >= 0 && i < j;
 }
 
-/** Variante « départ seul » : trajets qui partent de la wilaya du client ou la traversent (sans exiger l'arrivée). */
+/** Trajets qui PARTENT de la wilaya du client ou la TRAVERSENT (que le transporteur charge en route ou non). */
 export const tripPassesFrom = (x: T, from: string) => {
   if (!from) return false;
   if (x.from_wilaya === from) return true;
-  if (!x.allow_enroute) return false;
   const a = findWilaya(x.from_wilaya), b = findWilaya(x.to_wilaya);
   if (!a || !b) return false;
   const names = wilayasAlong(a, b).map((v) => v.name);
   const i = names.indexOf(from);
   return i >= 0 && i < names.length - 1;
 };
+/** Le transporteur accepte-t-il une marchandise dans cette wilaya ? (départ de l'annonce, ou annonce « charge en route ») */
+export const canLoadIn = (x: T, from: string) => x.from_wilaya === from || !!x.allow_enroute;
