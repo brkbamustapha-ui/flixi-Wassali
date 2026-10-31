@@ -13,6 +13,7 @@ import { WILAYAS, findWilaya, wilayaLabel, nearestWilaya, distKm } from "@/lib/w
 import CommunePicker from "@/components/CommunePicker";
 import { geocodeCommune, reverseCommune, matchCommune, norm, type Commune } from "@/lib/geo";
 import { useI18n } from "@/lib/i18n";
+import { focusField } from "@/lib/formFocus";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[340px] animate-pulse rounded-2xl bg-violet-100" /> });
 type Pt = { lat: number; lng: number } | null;
@@ -140,15 +141,17 @@ export default function NewOrder() {
     });
   }
 
+  const bad = (field: string, msg: string) => { setErr(msg); focusField(field); };
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     setErr("");
-    if (!fromCom || !toCom) return setErr(t("Choisissez la commune de départ et la commune d'arrivée."));
-    if (from === to && fromCom === toCom && !fromAddr) return setErr(t("Départ et arrivée sont dans la même commune : précisez les adresses."));
-    if (!priceOk) return setErr(t("Indiquez un prix valide (nombre entier en DA)."));
-    if (!preview) return setErr(t("Choisissez la date et l'heure de départ."));
-    if (!preview.ok) return setErr(t("Le départ doit être dans au moins 10 minutes."));
-    if (arrDate && arrDate < dDate) return setErr(t("La date d'arrivée souhaitée ne peut pas précéder le départ."));
+    if (!fromCom || !toCom) return bad(!fromCom ? "fromCom" : "toCom", t("Choisissez la commune de départ et la commune d'arrivée."));
+    if (from === to && fromCom === toCom && !fromAddr) return bad("fromAddr", t("Départ et arrivée sont dans la même commune : précisez les adresses."));
+    if (!priceOk) return bad("price", t("Indiquez un prix valide (nombre entier en DA)."));
+    if (!preview) return bad("dDate", t("Choisissez la date et l'heure de départ."));
+    if (!preview.ok) return bad("dDate", t("Le départ doit être dans au moins 10 minutes."));
+    if (arrDate && arrDate < dDate) return bad("arrDate", t("La date d'arrivée souhaitée ne peut pas précéder le départ."));
     setBusy(true);
     if (editId) {
       const { error } = await sb.rpc("flixi_update_order", { p_order: editId, p_data: {
@@ -203,24 +206,24 @@ export default function NewOrder() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-3 rounded-2xl bg-orange-50/60 p-4">
             <Field label={"📍 " + t("Wilaya de départ")}><select className="select" value={from} onChange={(e) => setFrom(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{wilayaLabel(x, lang)}</option>)}</select></Field>
-            <CommunePicker code={wf.code} value={fromCom} onChange={(c) => pickCommune("from", c)} onList={setFromList} label={t("Commune de départ")} />
-            <Field label={t("Adresse de départ")}><input className="input" value={fromAddr} onChange={(e) => setFromAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
+            <div data-field="fromCom"><CommunePicker code={wf.code} value={fromCom} onChange={(c) => pickCommune("from", c)} onList={setFromList} label={t("Commune de départ")} /></div>
+            <Field name="fromAddr" label={t("Adresse de départ")}><input className="input" value={fromAddr} onChange={(e) => setFromAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
           </div>
           <div className="space-y-3 rounded-2xl bg-violet-50 p-4">
             <Field label={"🏁 " + t("Wilaya d'arrivée")}><select className="select" value={to} onChange={(e) => setTo(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{wilayaLabel(x, lang)}</option>)}</select></Field>
-            <CommunePicker code={wt.code} value={toCom} onChange={(c) => pickCommune("to", c)} onList={setToList} label={t("Commune d'arrivée")} />
+            <div data-field="toCom"><CommunePicker code={wt.code} value={toCom} onChange={(c) => pickCommune("to", c)} onList={setToList} label={t("Commune d'arrivée")} /></div>
             <Field label={t("Adresse d'arrivée")}><input className="input" value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
           </div>
         </div>
         {!editId && <AvailableDrivers from={from} to={to} vehicle={vehicle} />}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={"🗓 " + t("Date de départ")}><input className="input" type="date" min={today} required value={dDate} onChange={(e) => setDDate(e.target.value)} dir="ltr" /></Field>
+          <Field name="dDate" label={"🗓 " + t("Date de départ")}><input className="input" type="date" min={today} required value={dDate} onChange={(e) => setDDate(e.target.value)} dir="ltr" /></Field>
           <Field label={"🕗 " + t("Heure de départ")}><input className="input" type="time" required value={dTime} onChange={(e) => setDTime(e.target.value)} dir="ltr" /></Field>
         </div>
         {preview && !preview.ok && <Alert>{t("Le départ doit être dans au moins 10 minutes.")}</Alert>}
         {preview?.ok && preview.urgent && <Alert kind="info">⚡ {t("Départ dans moins de 2 heures : votre commande sera marquée URGENTE et mise en avant auprès des transporteurs.")}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={"🏁 " + t("Date d'arrivée souhaitée")}><input className="input" type="date" min={dDate || today} value={arrDate} onChange={(e) => setArrDate(e.target.value)} dir="ltr" /></Field>
+          <Field name="arrDate" label={"🏁 " + t("Date d'arrivée souhaitée")}><input className="input" type="date" min={dDate || today} value={arrDate} onChange={(e) => setArrDate(e.target.value)} dir="ltr" /></Field>
           <Field label={"🕗 " + t("Heure d'arrivée souhaitée")}><input className="input" type="time" value={arrTime} onChange={(e) => setArrTime(e.target.value)} dir="ltr" disabled={!arrDate} /></Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -230,7 +233,7 @@ export default function NewOrder() {
           </Field>
         </div>
         <Alert kind="info">🔓 {hours ? t("L'enchère est ouverte à tous les transporteurs pendant {h} h (vous pouvez la terminer avant). Le prix le plus bas gagne.", { h: hours }) : t("L'enchère reste ouverte à tous les transporteurs jusqu'à ce que VOUS la terminiez. Le prix le plus bas gagne.")}</Alert>
-        <Field label={t("Votre prix (DA)")} hint={t("Prix libre. Les transporteurs peuvent accepter ce prix ou proposer moins cher. Vous ne payez que le prix convenu : la commission est à la charge du transporteur.")}>
+        <Field name="price" label={t("Votre prix (DA)")} hint={t("Prix libre. Les transporteurs peuvent accepter ce prix ou proposer moins cher. Vous ne payez que le prix convenu : la commission est à la charge du transporteur.")}>
           <input className="input !text-lg !font-extrabold" type="number" min={MIN_PRICE} step={1} required value={price} onChange={(e) => setPrice(e.target.value)} placeholder={t("ex : 8000")} dir="ltr" />
         </Field>
         {price && !priceOk && <Alert>{t("Indiquez un prix valide (nombre entier en DA).")}</Alert>}

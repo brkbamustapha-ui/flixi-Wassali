@@ -7,6 +7,7 @@ import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
 import { ORDER_STATUS, phoneDigits, hoursUntil, CANCEL_FREE_HOURS } from "@/lib/format";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import OrderDetails from "@/components/OrderDetails";
+import ArchivedBanner from "@/components/ArchivedBanner";
 import ChatHead, { ChatLauncher } from "@/components/OrderChat";
 import { pingNow } from "@/lib/location";
 import RatePanel from "@/components/RatePanel";
@@ -104,6 +105,7 @@ export default function DriverOrder() {
   return (
     <div className="grid gap-6 lg:grid-cols-5">
       <div className="space-y-5 lg:col-span-3">
+        <ArchivedBanner role="driver" status={order.status} />
         <div className="card p-5 sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div>

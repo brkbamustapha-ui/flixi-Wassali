@@ -44,3 +44,7 @@ html[dir="rtl"] body { font-family: var(--font-cairo), var(--font-jakarta), ui-s
 html[dir="rtl"] .grad-text { padding-inline: .06em; }
 [dir="ltr"] .keep-ltr, .keep-ltr { direction: ltr; unicode-bidi: isolate; }
 .leaflet-container { direction: ltr; }
+
+/* Rubrique à remplir : mise en évidence quand la validation échoue */
+.field-error { outline: 2px solid #f43f5e; outline-offset: 5px; border-radius: 16px; animation: field-shake .45s ease; }
+@keyframes field-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }

@@ -3,9 +3,9 @@ import { ReactNode } from "react";
 import { commissionFor, commissionRate, da } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 
-export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
+export function Field({ label, children, hint, name }: { label: string; children: ReactNode; hint?: string; name?: string }) {
   return (
-    <div>
+    <div data-field={name}>
       <label className="label">{label}</label>
       {children}
       {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}

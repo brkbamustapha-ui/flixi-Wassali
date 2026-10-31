@@ -1,4 +1,5 @@
 "use client";
+import { focusField } from "@/lib/formFocus";
 import { FormEvent, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Alert, Field, PriceBreakdown } from "./ui";
@@ -53,15 +54,17 @@ export default function TripBidModal({ trip, mode, sb, onClose, onDone }: { trip
     (side === "from" ? setFromPt : setToPt)({ lat: pos.lat, lng: pos.lng });
   }
 
+  const bad = (field: string, msg: string) => { setErr(msg); focusField(field); };
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!ok || busy) return;
     setErr("");
-    if (!weight || Number(weight) <= 0) return setErr(t("Indiquez le poids de la marchandise."));
-    if (!dims.l || !dims.w || !dims.h) return setErr(t("Indiquez la longueur, la largeur et la hauteur."));
-    if (photos.length === 0) return setErr(t("Ajoutez au moins une photo de la marchandise."));
-    if (!fromCom || !toCom) return setErr(t("Choisissez la commune de départ et la commune d'arrivée."));
-    if (!fromAddr.trim() || !toAddr.trim()) return setErr(t("Indiquez l'adresse de départ et l'adresse d'arrivée."));
+    if (!weight || Number(weight) <= 0) return bad("weight", t("Indiquez le poids de la marchandise."));
+    if (!dims.l || !dims.w || !dims.h) return bad("dims", t("Indiquez la longueur, la largeur et la hauteur."));
+    if (photos.length === 0) return bad("photos", t("Ajoutez au moins une photo de la marchandise."));
+    if (!fromCom || !toCom) return bad(!fromCom ? "fromCom" : "toCom", t("Choisissez la commune de départ et la commune d'arrivée."));
+    if (!fromAddr.trim() || !toAddr.trim()) return bad(!fromAddr.trim() ? "fromAddr" : "toAddr", t("Indiquez l'adresse de départ et l'adresse d'arrivée."));
     if (enroute && corridor.length && corridor.findIndex((x) => x.name === fromW) > corridor.findIndex((x) => x.name === toW)) return setErr(t("Le départ doit précéder l'arrivée sur le trajet du transporteur."));
     setBusy(true);
     const { error } = await sb.rpc("flixi_trip_bid2", {
@@ -102,15 +105,15 @@ export default function TripBidModal({ trip, mode, sb, onClose, onDone }: { trip
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label={t("Type de marchandise")}><select className="select" value={goods} onChange={(e) => setGoods(e.target.value)}>{GOODS_TYPES.map((g) => <option key={g} value={g}>{t(g)}</option>)}</select></Field>
-          <Field label={t("Poids approximatif (kg)")}><input className="input" type="number" min={1} required value={weight} onChange={(e) => setWeight(e.target.value)} placeholder={t("ex : 250")} dir="ltr" /></Field>
+          <Field name="weight" label={t("Poids approximatif (kg)")}><input className="input" type="number" min={1} required value={weight} onChange={(e) => setWeight(e.target.value)} placeholder={t("ex : 250")} dir="ltr" /></Field>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div data-field="dims" className="grid grid-cols-3 gap-3">
           <Field label={t("Longueur (cm)")}><input className="input" type="number" min={1} required value={dims.l} onChange={(e) => setDims({ ...dims, l: e.target.value })} dir="ltr" /></Field>
           <Field label={t("Largeur (cm)")}><input className="input" type="number" min={1} required value={dims.w} onChange={(e) => setDims({ ...dims, w: e.target.value })} dir="ltr" /></Field>
           <Field label={t("Hauteur (cm)")}><input className="input" type="number" min={1} required value={dims.h} onChange={(e) => setDims({ ...dims, h: e.target.value })} dir="ltr" /></Field>
         </div>
         <Field label={t("Description")}><textarea className="textarea" rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t("Nombre de colis, fragile…")} /></Field>
-        <PhotoPicker photos={photos} onChange={setPhotos} onError={setErr} required />
+        <div data-field="photos"><PhotoPicker photos={photos} onChange={setPhotos} onError={setErr} required /></div>
 
         <div className="space-y-3 rounded-2xl bg-violet-50 p-4">
           <p className="text-sm font-extrabold">🏋 {t("Manutention (chargement / déchargement)")}</p>
@@ -124,14 +127,14 @@ export default function TripBidModal({ trip, mode, sb, onClose, onDone }: { trip
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-3 rounded-2xl bg-orange-50/60 p-4">
             <Field label={"📍 " + t("Wilaya de départ")}>{wSel(fromW, (v) => { setFromW(v); setFromCom(""); })}</Field>
-            <CommunePicker code={fw.code} value={fromCom} onChange={setFromCom} label={t("Commune de départ")} />
-            <Field label={t("Adresse de départ")}><input className="input" required value={fromAddr} onChange={(e) => setFromAddr(e.target.value)} placeholder={t("Rue, repère…")} /></Field>
+            <div data-field="fromCom"><CommunePicker code={fw.code} value={fromCom} onChange={setFromCom} label={t("Commune de départ")} /></div>
+            <Field name="fromAddr" label={t("Adresse de départ")}><input className="input" required value={fromAddr} onChange={(e) => setFromAddr(e.target.value)} placeholder={t("Rue, repère…")} /></Field>
             <button type="button" onClick={() => myPos("from")} className="btn btn-ghost w-full !py-1.5 text-sm">🎯 {fromPt ? t("Position ajoutée ✔") : t("Ajouter ma position (départ)")}</button>
           </div>
           <div className="space-y-3 rounded-2xl bg-violet-50 p-4">
             <Field label={"🏁 " + t("Wilaya d'arrivée")}>{wSel(toW, (v) => { setToW(v); setToCom(""); })}</Field>
-            <CommunePicker code={tw.code} value={toCom} onChange={setToCom} label={t("Commune d'arrivée")} />
-            <Field label={t("Adresse d'arrivée")}><input className="input" required value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder={t("Rue, repère…")} /></Field>
+            <div data-field="toCom"><CommunePicker code={tw.code} value={toCom} onChange={setToCom} label={t("Commune d'arrivée")} /></div>
+            <Field name="toAddr" label={t("Adresse d'arrivée")}><input className="input" required value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder={t("Rue, repère…")} /></Field>
             <button type="button" onClick={() => myPos("to")} className="btn btn-ghost w-full !py-1.5 text-sm">🎯 {toPt ? t("Position ajoutée ✔") : t("Ajouter ma position (arrivée)")}</button>
           </div>
         </div>

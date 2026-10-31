@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSession } from "@/components/Session";
 import { Alert, Empty, Field, Spinner } from "@/components/ui";
 import { AuctionBanner } from "@/components/Countdown";
-import { MIN_PRICE, auctionPreview, da, departDate, commissionFor } from "@/lib/format";
+import { MIN_PRICE, VEHICLE_TYPES, auctionPreview, da, departDate, commissionFor } from "@/lib/format";
 import { WILAYAS, findWilaya } from "@/lib/wilayas";
 import CommunePicker from "@/components/CommunePicker";
 import { Gallery, MapsButtons } from "@/components/OrderDetails";
@@ -12,6 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Stars } from "@/components/RatePanel";
 import { pingNow, getPosition } from "@/lib/location";
 import { useI18n } from "@/lib/i18n";
+import { focusField } from "@/lib/formFocus";
 
 type TBid = {
   id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null; alias: string; rating: number; rating_count: number;
@@ -20,6 +21,7 @@ type TBid = {
   length_cm?: number | null; width_cm?: number | null; height_cm?: number | null; handlers_count?: number; floor_no?: number | null; driver_brings_handlers?: boolean; has_img?: boolean;
 };
 type Trip = {
+  vehicle_type?: string | null;
   from_address?: string | null; to_address?: string | null; from_lat?: number | null; from_lng?: number | null;
   id: string; from_wilaya: string; to_wilaya: string; from_commune?: string | null; to_commune?: string | null; allow_enroute?: boolean; depart_date: string; depart_time: string; price: number | null; note: string | null;
   ref?: string; orders?: { id: string; ref: string; price: number; status: string }[]; parent_order_id?: string | null; status: string; phase: string; urgent?: boolean; round: number; winning_bid_id: string | null; booked_order_id: string | null; bids: TBid[];
@@ -71,6 +73,7 @@ export default function Trips() {
   const [dDate, setDDate] = useState("");
   const [dTime, setDTime] = useState("08:00");
   const [edit, setEdit] = useState<Trip | null>(null);
+  const [vehicle, setVehicle] = useState(driver?.vehicle_type ?? VEHICLE_TYPES[1]);
   const today = new Date().toISOString().slice(0, 10);
   const preview = auctionPreview(dDate, dTime);
 
@@ -85,12 +88,13 @@ export default function Trips() {
     setErr("");
     const form = e.currentTarget;
     const f = new FormData(form);
+    const bad = (field: string, msg: string) => { setErr(msg); focusField(field); };
     const price = f.get("price") ? Number(f.get("price")) : null;
-    if (fromW === toW && fromCom === toCom) return setErr(t("Choisissez deux wilayas différentes."));
-    if (!fromCom || !toCom) return setErr(t("Choisissez la commune de départ et la commune d'arrivée."));
-    if (price !== null && (!Number.isInteger(price) || price < MIN_PRICE)) return setErr(t("Indiquez un prix valide (nombre entier en DA)."));
-    if (!preview) return setErr(t("Choisissez la date et l'heure de départ."));
-    if (!preview.ok) return setErr(t("Le départ doit être dans au moins 10 minutes."));
+    if (fromW === toW && fromCom === toCom) return bad("toCom", t("Choisissez deux wilayas différentes."));
+    if (!fromCom || !toCom) return bad(!fromCom ? "fromCom" : "toCom", t("Choisissez la commune de départ et la commune d'arrivée."));
+    if (price !== null && (!Number.isInteger(price) || price < MIN_PRICE)) return bad("price", t("Indiquez un prix valide (nombre entier en DA)."));
+    if (!preview) return bad("dDate", t("Choisissez la date et l'heure de départ."));
+    if (!preview.ok) return bad("dDate", t("Le départ doit être dans au moins 10 minutes."));
     setBusy(true);
     if (edit) {
       const { error } = await sb.rpc("flixi_update_trip", { p_trip: edit.id, p_data: {
@@ -107,7 +111,7 @@ export default function Trips() {
     const { error } = await sb.from("flixi_trips").insert({
       driver_id: profile.id, from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom, to_commune: toCom,
       from_address: String(f.get("from_address") || "") || null, to_address: String(f.get("to_address") || "") || null,
-      from_lat: fromPt?.lat ?? null, from_lng: fromPt?.lng ?? null, allow_enroute: enroute,
+      from_lat: fromPt?.lat ?? null, from_lng: fromPt?.lng ?? null, allow_enroute: enroute, vehicle_type: vehicle,
       depart_date: dDate, depart_time: dTime, price, note: String(f.get("note") || "") || null,
     });
     setBusy(false);
@@ -120,7 +124,7 @@ export default function Trips() {
     setErr(""); setEdit(x);
     setFromW(x.from_wilaya); setToW(x.to_wilaya); setFromCom(x.from_commune ?? ""); setToCom(x.to_commune ?? "");
     setFromPt(x.from_lat != null && x.from_lng != null ? { lat: x.from_lat, lng: x.from_lng } : null);
-    setEnroute(!!x.allow_enroute); setDDate(x.depart_date); setDTime(x.depart_time.slice(0, 5));
+    setEnroute(!!x.allow_enroute); setVehicle(x.vehicle_type ?? driver?.vehicle_type ?? VEHICLE_TYPES[1]); setDDate(x.depart_date); setDTime(x.depart_time.slice(0, 5));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function cancelEdit() { setEdit(null); setFromCom(""); setToCom(""); setFromPt(null); setEnroute(false); setDDate(""); setDTime("08:00"); }
@@ -159,25 +163,26 @@ export default function Trips() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
           <div className="space-y-3 rounded-2xl bg-orange-50/60 p-4">
             <Field label={"📍 " + t("Wilaya de départ")}><select className="select" value={fromW} onChange={(e) => { setFromW(e.target.value); setFromCom(""); }}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
-            <CommunePicker code={fw.code} value={fromCom} onChange={setFromCom} label={t("Commune de départ")} />
+            <div data-field="fromCom"><CommunePicker code={fw.code} value={fromCom} onChange={setFromCom} label={t("Commune de départ")} /></div>
             <Field label={t("Adresse de départ")}><input name="from_address" defaultValue={edit?.from_address ?? ""} className="input" placeholder={t("Rue, repère…")} /></Field>
             <button type="button" onClick={async () => { const { pos, denied } = await getPosition(); if (!pos) return setErr(denied ? t("Activez la localisation de votre appareil pour ajouter votre position.") : t("Impossible d'obtenir votre position.")); setFromPt({ lat: pos.lat, lng: pos.lng }); }} className="btn btn-ghost w-full !py-1.5 text-sm">🎯 {fromPt ? t("Position ajoutée ✔") : t("Ajouter ma position (départ)")}</button>
           </div>
           <div className="space-y-3 rounded-2xl bg-violet-50 p-4">
             <Field label={"🏁 " + t("Wilaya de destination")}><select className="select" value={toW} onChange={(e) => { setToW(e.target.value); setToCom(""); }}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
-            <CommunePicker code={tw.code} value={toCom} onChange={setToCom} label={t("Commune d'arrivée")} />
+            <div data-field="toCom"><CommunePicker code={tw.code} value={toCom} onChange={setToCom} label={t("Commune d'arrivée")} /></div>
             <Field label={t("Adresse d'arrivée")}><input name="to_address" defaultValue={edit?.to_address ?? ""} className="input" placeholder={t("Rue, repère…")} /></Field>
           </div>
         </div>
+        <Field label={"🚚 " + t("Moyen de transport")} hint={t("Le véhicule avec lequel vous faites ce trajet : les clients et les demandes compatibles sont filtrés selon ce choix.")}><select className="select" value={vehicle} onChange={(e) => setVehicle(e.target.value)}>{[...new Set([driver?.vehicle_type ?? "", ...VEHICLE_TYPES])].filter(Boolean).map((v) => <option key={v} value={v}>{t(v)}</option>)}</select></Field>
         <label className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm font-bold"><input type="checkbox" className="mt-1 h-4 w-4 accent-pink-600" checked={enroute} onChange={(e) => setEnroute(e.target.checked)} /><span>🛣 {t("Je peux charger en route (place restante dans le véhicule)")}<span className="block text-xs font-semibold text-slate-600">{t("Les clients choisiront leur départ et leur arrivée parmi les wilayas situées entre vos deux points, dans la même annonce.")}</span></span></label>
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t("Jour de départ")}><input type="date" min={today} required value={dDate} onChange={(e) => setDDate(e.target.value)} className="input" dir="ltr" /></Field>
+          <Field name="dDate" label={t("Jour de départ")}><input type="date" min={today} required value={dDate} onChange={(e) => setDDate(e.target.value)} className="input" dir="ltr" /></Field>
           <Field label={t("Heure de départ")}><input type="time" required value={dTime} onChange={(e) => setDTime(e.target.value)} className="input" dir="ltr" /></Field>
         </div>
         {preview && !preview.ok && <Alert>{t("Le départ doit être dans au moins 10 minutes.")}</Alert>}
         {preview?.ok && preview.urgent && <Alert kind="info">⚡ {t("Trajet EXPRESS (départ dans moins de 2 heures) : il sera mis en avant auprès des clients, qui peuvent profiter d'un prix bas.")}</Alert>}
         {preview?.ok && !preview.urgent && <Alert kind="info">🔓 {t("L'enchère reste ouverte à tous les clients jusqu'à ce que vous la terminiez.")}</Alert>}
-        <Field label={t("Prix à partir de (DA, optionnel)")} hint={t("Prix libre. Les clients peuvent accepter ce prix tout de suite ou enchérir.")}><input name="price" defaultValue={edit?.price ?? ""} type="number" min={MIN_PRICE} step={1} className="input" dir="ltr" /></Field>
+        <Field name="price" label={t("Prix à partir de (DA, optionnel)")} hint={t("Prix libre. Les clients peuvent accepter ce prix tout de suite ou enchérir.")}><input name="price" defaultValue={edit?.price ?? ""} type="number" min={MIN_PRICE} step={1} className="input" dir="ltr" /></Field>
         <Field label={t("Note (capacité, type de marchandise…)")}><input name="note" defaultValue={edit?.note ?? ""} className="input" /></Field>
         {err && <Alert>{err}</Alert>}
         <button disabled={busy || !approved} className="btn btn-primary w-full">{edit ? t("Enregistrer les modifications") : t("Publier le trajet")}</button>
@@ -195,7 +200,7 @@ export default function Trips() {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="text-xs font-extrabold text-brand-pink">{x.ref}</p><p className="text-lg font-extrabold">{w(x.from_wilaya)} <span className="grad-text inline-block rtl:rotate-180">→</span> {w(x.to_wilaya)} {x.urgent && <span className="badge bg-rose-100 text-rose-700">⚡ {t("EXPRESS")}</span>}</p>
-                  <p className="text-sm text-slate-600">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}{x.price ? ` · ${t("Prix annoncé : {p}", { p: da(x.price) })}` : ""}</p>
+                  <p className="text-sm text-slate-600">🚚 {t(x.vehicle_type ?? driver?.vehicle_type ?? "—")} · 🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}{x.price ? ` · ${t("Prix annoncé : {p}", { p: da(x.price) })}` : ""}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {x.bids.length === 0 && (x.orders?.length ?? 0) === 0 && <button className="btn btn-ghost !px-3 !py-1 text-xs" onClick={() => startEdit(x)}>✏ {t("Modifier")}</button>}

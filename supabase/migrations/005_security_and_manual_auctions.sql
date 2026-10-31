@@ -113,3 +113,10 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 
 -- flixi_available_trips : réservé au mode client (un transporteur ne voit pas les trajets annoncés des autres).
 -- Côté client : un trajet n'est proposé que s'il part de la wilaya du client, ou la traverse ET que le transporteur a coché « charger en route ».
+
+-- Lot « notifications de trajet / véhicule du trajet / archivage » (appliqué via MCP) :
+-- * flixi_wilayas (58 wilayas + coordonnées) et flixi_wilayas_along(a,b) : couloir de 60 km, identique à wilayasAlong côté application ;
+-- * trigger flixi_orders_notify_trips : à chaque nouvelle commande, notification 'order_on_trip' aux transporteurs dont l'annonce
+--   correspond (même trajet, ou annonce « charge en route » dont le couloir contient départ puis arrivée) et dont le véhicule convient ;
+-- * flixi_trips.vehicle_type (moyen de transport du trajet) exposé par flixi_available_trips / flixi_my_trips_overview / flixi_update_trip ;
+-- * flixi_orders.archived_at renseigné automatiquement quand la course passe à « delivered » (double confirmation).

@@ -8,6 +8,7 @@ import { VEHICLE_TYPES } from "@/lib/format";
 import { compressImage } from "@/lib/images";
 import { WILAYAS } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
+import { focusField } from "@/lib/formFocus";
 
 type Key = "carte_grise_img" | "permis_img" | "selfie_img" | "vehicle_img" | "plate_img" | "controle_technique_img" | "assurance_img" | "registre_nif_img";
 const DOCS: { key: Key; label: string; hint: string; capture?: "user" | "environment" }[] = [
@@ -48,9 +49,9 @@ export default function Apply() {
     setErr("");
     const f = new FormData(e.currentTarget);
     const missing = DOCS.filter((d) => !imgs[d.key]);
-    if (missing.length) return setErr(t("Photos manquantes : {list}.", { list: missing.map((m) => t(m.label)).join(", ") }));
-    if (!f.get("terms") || !f.get("resp") || !f.get("loc")) return setErr(t("Vous devez accepter toutes les conditions pour ouvrir un compte transporteur."));
-    if (locOk !== true) return setErr(t("Activez la localisation de votre appareil : elle est obligatoire pour suivre la marchandise."));
+    if (missing.length) { setErr(t("Photos manquantes : {list}.", { list: missing.map((m) => t(m.label)).join(", ") })); return focusField("doc-" + missing[0].key); }
+    if (!f.get("terms") || !f.get("resp") || !f.get("loc")) { setErr(t("Vous devez accepter toutes les conditions pour ouvrir un compte transporteur.")); return focusField("conditions"); }
+    if (locOk !== true) { setErr(t("Activez la localisation de votre appareil : elle est obligatoire pour suivre la marchandise.")); return focusField("conditions"); }
     setBusy(true);
     const { error } = await sb.from("flixi_drivers").insert({
       user_id: profile.id, wilaya: String(f.get("wilaya")), vehicle_type: String(f.get("vehicle")), plate_number: String(f.get("plate")).trim(),
@@ -95,7 +96,7 @@ export default function Apply() {
         <h2 className="text-lg font-extrabold">{t("2. Photos obligatoires")}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {DOCS.map((d) => (
-            <label key={d.key} className={`block cursor-pointer rounded-2xl border-2 border-dashed p-3 text-center transition ${imgs[d.key] ? "border-emerald-300 bg-emerald-50" : "border-violet-200 hover:border-brand-pink"}`}>
+            <label key={d.key} data-field={"doc-" + d.key} className={`block cursor-pointer rounded-2xl border-2 border-dashed p-3 text-center transition ${imgs[d.key] ? "border-emerald-300 bg-emerald-50" : "border-violet-200 hover:border-brand-pink"}`}>
               {imgs[d.key]
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={imgs[d.key]} alt={t(d.label)} className="mx-auto h-32 w-full rounded-xl object-cover" />
@@ -110,6 +111,7 @@ export default function Apply() {
 
       <div className="card space-y-4 p-5 sm:p-6">
         <h2 className="text-lg font-extrabold">{t("3. Localisation et conditions")}</h2>
+        <div data-field="conditions" className="space-y-3">
         <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-violet-50 p-4">
           <button type="button" onClick={askLocation} className="btn btn-ghost text-sm">📍 {t("Activer ma localisation")}</button>
           {locOk === true && <span className="text-sm font-bold text-emerald-700">✔ {t("Localisation activée")}</span>}
@@ -122,6 +124,7 @@ export default function Apply() {
         ].map(([n, txt]) => (
           <label key={n} className="flex items-start gap-2 text-sm"><input name={n} type="checkbox" className="mt-1 h-4 w-4 accent-pink-600" /><span>{t(txt)}</span></label>
         ))}
+        </div>
         <p className="text-xs text-slate-500">{t("Sans ces acceptations, le compte transporteur ne peut pas être ouvert.")} <Link href="/conditions" target="_blank" className="font-bold text-brand-pink">{t("Lire les conditions")}</Link></p>
         {err && <Alert>{err}</Alert>}
         <button disabled={busy} className="btn btn-primary w-full !py-3.5 text-base">{busy ? t("Envoi du dossier…") : t("Envoyer mon dossier")}</button>

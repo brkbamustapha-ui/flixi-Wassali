@@ -949,4 +949,11 @@ export const DICT: Record<string, [string, string, string]> = {
   "Modifier mon trajet": ["Edit my trip", "تعديل رحلتي", "عدّل الرحلة تاعي"],
   "Vous pouvez modifier votre annonce tant qu'aucune offre n'a été faite.": ["You can edit your announcement as long as no offer has been made.", "يمكنك تعديل إعلانك ما دام لم يُقدَّم أي عرض.", "تقدر تعدّل الإعلان تاعك مادام ما تقدم حتى عرض."],
   "Choisissez votre départ et votre arrivée dans les filtres ci-dessus : les demandes seront adaptées à ce trajet.": ["Choose your departure and arrival in the filters above: requests will be adapted to this route.", "اختر الانطلاق والوصول في المرشحات أعلاه: ستُكيَّف الطلبات مع هذا المسار.", "اختار الانطلاق والوصول في الفلاتر لفوق: الطلبات تتكيّف مع هاد الطريق."],
+  "{n} offre(s) client en ligne en ce moment": ["{n} client offer(s) online right now", "{n} عرض (عروض) زبائن متصل الآن", "{n} عرض تاع زبائن في الخط دوك"],
+  "Nouvelle demande client sur votre trajet {tr} : {r} ({p})": ["New client request on your trip {tr}: {r} ({p})", "طلب زبون جديد على رحلتك {tr}: {r} ({p})", "طلب جديد من زبون على الطريق تاعك {tr}: {r} ({p})"],
+  "Moyen de transport": ["Means of transport", "وسيلة النقل", "وسيلة النقل"],
+  "Le véhicule avec lequel vous faites ce trajet : les clients et les demandes compatibles sont filtrés selon ce choix.": ["The vehicle you use for this trip: compatible clients and requests are filtered according to this choice.", "المركبة التي تقوم بهذه الرحلة بها: تُصفّى الطلبات والزبائن المتوافقون وفق هذا الاختيار.", "الكاميو لي تدير بيه هاد الرحلة: الطلبات والزبائن لي يناسبوه يتفلترو على هاد الاختيار."],
+  "Course terminée et archivée": ["Trip finished and archived", "الرحلة انتهت وتمت أرشفتها", "الرحلة سالات وتأرشفات"],
+  "Le client et le transporteur ont tous les deux confirmé : la course est finalisée et rangée dans votre historique.": ["Both the client and the carrier have confirmed: the trip is finalized and stored in your history.", "أكّد الزبون والناقل معًا: تم إنهاء الرحلة وحفظها في سجلّك.", "الزبون والناقل الاثنين أكدو: الرحلة سالات وراهي في الهيستوريك تاعك."],
+  "Voir mon historique": ["See my history", "عرض سجلّي", "شوف الهيستوريك تاعي"],
 };
