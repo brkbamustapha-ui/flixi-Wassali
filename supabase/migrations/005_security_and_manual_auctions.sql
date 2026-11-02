@@ -120,3 +120,7 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 --   correspond (même trajet, ou annonce « charge en route » dont le couloir contient départ puis arrivée) et dont le véhicule convient ;
 -- * flixi_trips.vehicle_type (moyen de transport du trajet) exposé par flixi_available_trips / flixi_my_trips_overview / flixi_update_trip ;
 -- * flixi_orders.archived_at renseigné automatiquement quand la course passe à « delivered » (double confirmation).
+
+-- Correctif « permission denied for table flixi_trips » : les INSERT des utilisateurs sont accordés colonne par colonne ;
+-- la nouvelle colonne vehicle_type n'était pas accordée. grant insert (vehicle_type) on flixi_trips to authenticated.
+-- RÈGLE : toute nouvelle colonne insérée depuis l'application doit être ajoutée à ce GRANT par colonnes.
