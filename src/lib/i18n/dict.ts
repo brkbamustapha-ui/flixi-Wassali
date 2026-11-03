@@ -956,4 +956,7 @@ export const DICT: Record<string, [string, string, string]> = {
   "Course terminée et archivée": ["Trip finished and archived", "الرحلة انتهت وتمت أرشفتها", "الرحلة سالات وتأرشفات"],
   "Le client et le transporteur ont tous les deux confirmé : la course est finalisée et rangée dans votre historique.": ["Both the client and the carrier have confirmed: the trip is finalized and stored in your history.", "أكّد الزبون والناقل معًا: تم إنهاء الرحلة وحفظها في سجلّك.", "الزبون والناقل الاثنين أكدو: الرحلة سالات وراهي في الهيستوريك تاعك."],
   "Voir mon historique": ["See my history", "عرض سجلّي", "شوف الهيستوريك تاعي"],
+  "Choisissez la commune d'arrivée.": ["Choose the arrival commune.", "اختر بلدية الوصول.", "اختار بلدية الوصول."],
+  "optionnel": ["optional", "اختياري", "اختياري"],
+  "Toute la wilaya (non précisée)": ["Whole wilaya (not specified)", "كل الولاية (غير محددة)", "الولاية كاملة (ما حددتهاش)"],
 };

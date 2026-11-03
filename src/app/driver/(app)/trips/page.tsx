@@ -90,15 +90,15 @@ export default function Trips() {
     const f = new FormData(form);
     const bad = (field: string, msg: string) => { setErr(msg); focusField(field); };
     const price = f.get("price") ? Number(f.get("price")) : null;
-    if (fromW === toW && fromCom === toCom) return bad("toCom", t("Choisissez deux wilayas différentes."));
-    if (!fromCom || !toCom) return bad(!fromCom ? "fromCom" : "toCom", t("Choisissez la commune de départ et la commune d'arrivée."));
+    if (fromW === toW && (fromCom || "") === toCom) return bad("toCom", t("Choisissez deux wilayas différentes."));
+    if (!toCom) return bad("toCom", t("Choisissez la commune d'arrivée."));
     if (price !== null && (!Number.isInteger(price) || price < MIN_PRICE)) return bad("price", t("Indiquez un prix valide (nombre entier en DA)."));
     if (!preview) return bad("dDate", t("Choisissez la date et l'heure de départ."));
     if (!preview.ok) return bad("dDate", t("Le départ doit être dans au moins 10 minutes."));
     setBusy(true);
     if (edit) {
       const { error } = await sb.rpc("flixi_update_trip", { p_trip: edit.id, p_data: {
-        from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom, to_commune: toCom,
+        from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom || null, to_commune: toCom,
         from_address: String(f.get("from_address") || "") || null, to_address: String(f.get("to_address") || "") || null,
         from_lat: fromPt?.lat ?? null, from_lng: fromPt?.lng ?? null, allow_enroute: enroute,
         depart_date: dDate, depart_time: dTime, price, note: String(f.get("note") || "") || null,
@@ -109,7 +109,7 @@ export default function Trips() {
       return load();
     }
     const { error } = await sb.from("flixi_trips").insert({
-      driver_id: profile.id, from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom, to_commune: toCom,
+      driver_id: profile.id, from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom || null, to_commune: toCom,
       from_address: String(f.get("from_address") || "") || null, to_address: String(f.get("to_address") || "") || null,
       from_lat: fromPt?.lat ?? null, from_lng: fromPt?.lng ?? null, allow_enroute: enroute, vehicle_type: vehicle,
       depart_date: dDate, depart_time: dTime, price, note: String(f.get("note") || "") || null,
@@ -163,7 +163,7 @@ export default function Trips() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
           <div className="space-y-3 rounded-2xl bg-orange-50/60 p-4">
             <Field label={"📍 " + t("Wilaya de départ")}><select className="select" value={fromW} onChange={(e) => { setFromW(e.target.value); setFromCom(""); }}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
-            <div data-field="fromCom"><CommunePicker code={fw.code} value={fromCom} onChange={setFromCom} label={t("Commune de départ")} /></div>
+            <div data-field="fromCom"><CommunePicker code={fw.code} value={fromCom} onChange={setFromCom} label={t("Commune de départ")} optional /></div>
             <Field label={t("Adresse de départ")}><input name="from_address" defaultValue={edit?.from_address ?? ""} className="input" placeholder={t("Rue, repère…")} /></Field>
             <button type="button" onClick={async () => { const { pos, denied } = await getPosition(); if (!pos) return setErr(denied ? t("Activez la localisation de votre appareil pour ajouter votre position.") : t("Impossible d'obtenir votre position.")); setFromPt({ lat: pos.lat, lng: pos.lng }); }} className="btn btn-ghost w-full !py-1.5 text-sm">🎯 {fromPt ? t("Position ajoutée ✔") : t("Ajouter ma position (départ)")}</button>
           </div>
