@@ -124,3 +124,13 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- Correctif « permission denied for table flixi_trips » : les INSERT des utilisateurs sont accordés colonne par colonne ;
 -- la nouvelle colonne vehicle_type n'était pas accordée. grant insert (vehicle_type) on flixi_trips to authenticated.
 -- RÈGLE : toute nouvelle colonne insérée depuis l'application doit être ajoutée à ce GRANT par colonnes.
+
+-- Lot « annulations traitées par l'administration / rappels / renouvellement » (appliqué via MCP) :
+-- * Annulation d'une course conclue : demande avec motif obligatoire (flixi_client_cancel / flixi_driver_cancel) -> décision de l'administration
+--   (flixi_admin_cancellations, flixi_admin_cancel_decide ; onglet « Annulations » du panneau admin) -> l'AUTRE partie accepte (flixi_answer_cancel2) :
+--   sans frais, ou avec 10 % du prix quand c'est le client qui annule (orders.cancel_fee, encaissés par le transporteur, aucune commission).
+--   Colonnes : cancel_admin_ok, cancel_admin_note, cancel_fee. L'ancienne flixi_answer_cancel(uuid,boolean) n'est plus exécutable.
+-- * Rappel toutes les 24 h tant qu'une course « in_transit » n'est pas confirmée par les deux côtés : flixi_done_reminders() (cron horaire
+--   « flixi-done-reminders », colonnes transit_at / done_reminder_at), notification 'done_reminder' à celui qui n'a pas confirmé.
+-- * Fin d'annonce : flixi_update_order(renew:true) rouvre une commande expirée ; flixi_delete_order, flixi_renew_trip (copie avec nouvelle date),
+--   flixi_delete_trip ; suppression logique via deleted_at (orders, trips).

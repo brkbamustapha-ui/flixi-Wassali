@@ -53,25 +53,28 @@ export default function NewOrder() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [renewMode, setRenewMode] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const skip = useRef({ from: false, to: false });
 
   // Mode « Modifier l'annonce » : ?edit=<id> — préremplit le formulaire (possible seulement avant la première offre)
   useEffect(() => {
-    const id = new URLSearchParams(location.search).get("edit");
+    const q0 = new URLSearchParams(location.search);
+    const renew = !!q0.get("renew");
+    const id = q0.get("edit") ?? q0.get("renew");
     if (!id) return;
-    setEditId(id); setLoadingEdit(true);
+    setEditId(id); setLoadingEdit(true); setRenewMode(renew);
     sb.from("flixi_orders").select("*").eq("id", id).eq("client_id", profile.id).maybeSingle().then(async ({ data: o }) => {
       const x = o as Record<string, any> | null; // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (!x || x.status !== "open") { setErr(t("Cette annonce ne peut plus être modifiée.")); return setLoadingEdit(false); }
-      const { count } = await sb.from("flixi_bids").select("id", { count: "exact", head: true }).eq("order_id", id);
+      if (!x || (renew ? x.status !== "expired" : x.status !== "open")) { setErr(t("Cette annonce ne peut plus être modifiée.")); return setLoadingEdit(false); }
+      const { count } = renew ? { count: 0 } : await sb.from("flixi_bids").select("id", { count: "exact", head: true }).eq("order_id", id);
       if ((count ?? 0) > 0) { setErr(t("Modification impossible : des offres ont déjà été faites.")); return setLoadingEdit(false); }
       skip.current = { from: x.from_wilaya !== "Alger", to: x.to_wilaya !== "Oran" };
       setGoods(x.goods_type); setDesc(x.description ?? ""); setWeight(x.weight_kg != null ? String(x.weight_kg) : "");
       setFrom(x.from_wilaya); setTo(x.to_wilaya); setFromAddr(x.from_address ?? ""); setToAddr(x.to_address ?? "");
       setFromCom(x.from_commune ?? ""); setToCom(x.to_commune ?? "");
       setFromPt(x.from_lat != null ? { lat: x.from_lat, lng: x.from_lng } : null); setToPt(x.to_lat != null ? { lat: x.to_lat, lng: x.to_lng } : null);
-      setPrice(String(x.client_price)); setDDate(x.depart_date ?? ""); setDTime((x.depart_time ?? "08:00").slice(0, 5));
+      setPrice(String(x.client_price)); setDDate(renew ? "" : (x.depart_date ?? "")); setDTime((x.depart_time ?? "08:00").slice(0, 5));
       setHandlers(String(x.handlers_count ?? 0)); setFloor(x.floor_no != null ? String(x.floor_no) : ""); setBring(!!x.driver_brings_handlers);
       setDims({ l: x.length_cm != null ? String(x.length_cm) : "", w: x.width_cm != null ? String(x.width_cm) : "", h: x.height_cm != null ? String(x.height_cm) : "" });
       setPhotos([...(x.goods_img ? [x.goods_img] : []), ...(Array.isArray(x.extra_imgs) ? x.extra_imgs : [])]);
@@ -82,7 +85,7 @@ export default function NewOrder() {
   }, [sb, profile.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (new URLSearchParams(location.search).get("edit")) return;
+    if (new URLSearchParams(location.search).get("edit") || new URLSearchParams(location.search).get("renew")) return;
     const q = new URLSearchParams(location.search);
     if (q.get("from") && findWilaya(q.get("from"))) setFrom(q.get("from")!);
     if (q.get("to") && findWilaya(q.get("to"))) setTo(q.get("to")!);
@@ -157,7 +160,7 @@ export default function NewOrder() {
       const { error } = await sb.rpc("flixi_update_order", { p_order: editId, p_data: {
         goods_type: goods, description: desc || null, weight_kg: weight ? Number(weight) : null,
         from_wilaya: from, from_address: fromAddr || null, from_lat: a.lat, from_lng: a.lng,
-        to_wilaya: to, to_address: toAddr || null, to_lat: b.lat, to_lng: b.lng, client_price: priceN, depart_date: dDate, depart_time: dTime,
+        to_wilaya: to, to_address: toAddr || null, to_lat: b.lat, to_lng: b.lng, client_price: priceN, depart_date: dDate, depart_time: dTime, ...(renewMode ? { renew: true } : {}),
         handlers_count: Number(handlers) || 0, floor_no: floor !== "" ? Number(floor) : null, driver_brings_handlers: Number(handlers) > 0 && bring,
         from_commune: fromCom, to_commune: toCom, goods_img: photos[0] ?? null, extra_imgs: photos.slice(1), length_cm: dims.l ? Number(dims.l) : null, width_cm: dims.w ? Number(dims.w) : null, height_cm: dims.h ? Number(dims.h) : null,
         want_arrival_date: arrDate || null, want_arrival_time: arrDate && arrTime ? arrTime : null, vehicle_wanted: vehicle || null, auction_hours: hours ? Number(hours) : null,
@@ -182,8 +185,8 @@ export default function NewOrder() {
   return (
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-5">
       <div className="card space-y-4 p-5 sm:p-6 lg:col-span-3">
-        <h1 className="text-2xl font-extrabold">{editId ? t("Modifier mon annonce") : t("Nouvelle commande")}</h1>
-        {editId && <Alert kind="info">✏ {t("Vous pouvez modifier votre annonce tant qu'aucun transporteur n'a fait d'offre.")}</Alert>}
+        <h1 className="text-2xl font-extrabold">{editId ? (renewMode ? t("Renouveler mon annonce") : t("Modifier mon annonce")) : t("Nouvelle commande")}</h1>
+        {editId && <Alert kind="info">{renewMode ? "🔁 " + t("Renouvelez votre annonce : choisissez une nouvelle date et heure de départ.") : "✏ " + t("Vous pouvez modifier votre annonce tant qu'aucun transporteur n'a fait d'offre.")}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("Type de marchandise")}><select className="select" value={goods} onChange={(e) => setGoods(e.target.value)}>{GOODS_TYPES.map((g) => <option key={g} value={g}>{t(g)}</option>)}</select></Field>
           <Field label={t("Poids approximatif (kg)")}><input className="input" type="number" min={0} value={weight} onChange={(e) => setWeight(e.target.value)} placeholder={t("ex : 250")} /></Field>
@@ -239,7 +242,7 @@ export default function NewOrder() {
         {price && !priceOk && <Alert>{t("Indiquez un prix valide (nombre entier en DA).")}</Alert>}
         {priceOk && <PriceBreakdown price={priceN} role="client" />}
         {err && <Alert>{err}</Alert>}
-        <button disabled={busy || !priceOk} className="btn btn-primary w-full !py-3.5 text-base">{busy ? t("Publication…") : editId ? t("Enregistrer les modifications") : t("Publier ma commande")}</button>
+        <button disabled={busy || !priceOk} className="btn btn-primary w-full !py-3.5 text-base">{busy ? t("Publication…") : editId ? (renewMode ? t("Renouveler l'annonce") : t("Enregistrer les modifications")) : t("Publier ma commande")}</button>
       </div>
       <div className="card space-y-3 p-4 lg:col-span-2 lg:self-start lg:sticky lg:top-24">
         <p className="font-extrabold">{t("Carte")}</p>

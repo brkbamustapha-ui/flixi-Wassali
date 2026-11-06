@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useSession } from "@/components/Session";
 import { Alert, PriceBreakdown, Spinner } from "@/components/ui";
-import { ORDER_STATUS, phoneDigits, hoursUntil, CANCEL_FREE_HOURS } from "@/lib/format";
+import { ORDER_STATUS, da, phoneDigits } from "@/lib/format";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import OrderDetails from "@/components/OrderDetails";
 import ArchivedBanner from "@/components/ArchivedBanner";
@@ -82,9 +82,9 @@ export default function DriverOrder() {
     setMode(""); setReason("");
     load();
   }
-  async function answerCancel(accept: boolean) {
+  async function answerCancel(accept: boolean, withFee = false) {
     setErr("");
-    const { error } = await sb.rpc("flixi_answer_cancel", { p_order: id, p_accept: accept });
+    const { error } = await sb.rpc("flixi_answer_cancel2", { p_order: id, p_accept: accept, p_with_fee: withFee });
     if (error) setErr(t(error.message));
     load();
   }
@@ -140,20 +140,23 @@ export default function DriverOrder() {
             : <button onClick={() => act("flixi_confirm_done")} className="btn btn-ok w-full !py-3">✔ {t("Marchandise livrée — confirmer la fin de la course")}</button>)}
           {order.status === "in_transit" && order.client_done_at && !order.driver_done_at && <Alert kind="info">{t("Le client a déjà confirmé la réception : confirmez à votre tour pour terminer la course.")}</Alert>}
           {order.status === "delivered" && <Alert kind="ok">{t("Course terminée. Pensez à verser votre commission chaque samedi.")} {t("Les informations personnelles du client sont maintenant masquées ; tous les détails de la course restent affichés.")}</Alert>}
-          {order.status === "cancelled" && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason ?? "—" })}</Alert>}
+          {order.status === "cancelled" && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason ?? "—" })}{order.cancel_fee ? <> {t("Frais d'annulation (10 %) : {f}, à encaisser directement auprès du client.", { f: da(order.cancel_fee) })}</> : null}</Alert>}
 
-          {order.cancel_status === "requested" && order.cancel_by === "client" && order.status === "matched" && (
+          {order.cancel_status === "requested" && order.cancel_by === "client" && order.status === "matched" && order.cancel_admin_ok && (
             <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-sm">
-              <p className="font-extrabold">⚠ {t("Le client demande l'annulation de la course.")}</p>
+              <p className="font-extrabold">⚠ {t("Le client demande l'annulation de la course (validée par l'administration).")}</p>
               <p className="mt-1">{t("Motif : {r}", { r: order.cancel_reason ?? "" })}</p>
-              <div className="mt-3 flex gap-2">
-                <button onClick={() => answerCancel(true)} className="btn btn-primary !py-1.5 text-sm">✔ {t("Accepter l'annulation")}</button>
+              <p className="mt-2 text-xs font-semibold text-slate-700">{t("Vous choisissez : annulation sans frais, ou avec des frais de 10 % du prix ({f}) que le client vous règle directement (la plateforme ne touche rien).", { f: da(Math.round((order.final_price ?? order.client_price) * 0.1)) })}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={() => answerCancel(true, false)} className="btn btn-primary !py-1.5 text-sm">✔ {t("Accepter sans frais")}</button>
+                <button onClick={() => answerCancel(true, true)} className="btn btn-ok !py-1.5 text-sm">💰 {t("Accepter avec frais (10 %)")}</button>
                 <button onClick={() => answerCancel(false)} className="btn btn-danger !py-1.5 text-sm">✖ {t("Refuser")}</button>
               </div>
             </div>
           )}
-          {order.cancel_status === "requested" && order.cancel_by === "driver" && <Alert kind="info">⏳ {t("Votre demande d'annulation attend la réponse du client. L'équipe est alertée.")}</Alert>}
-          {order.cancel_status === "refused" && order.cancel_by === "driver" && <Alert>{t("Le client a refusé l'annulation.")}</Alert>}
+          {order.cancel_status === "requested" && order.cancel_by === "client" && order.status === "matched" && !order.cancel_admin_ok && <Alert kind="info">⏳ {t("Le client a demandé l'annulation : l'administration l'examine avant de vous la soumettre.")}</Alert>}
+          {order.cancel_status === "requested" && order.cancel_by === "driver" && <Alert kind="info">{order.cancel_admin_ok ? "✔ " + t("L'administration a validé votre demande d'annulation. En attente de la réponse du client.") : "⏳ " + t("Votre demande d'annulation est examinée par l'administration, puis le client devra l'accepter.")}</Alert>}
+          {order.cancel_status === "refused" && order.cancel_by === "driver" && <Alert>{order.cancel_admin_ok === false ? t("L'administration a refusé l'annulation.") + (order.cancel_admin_note ? ` ${order.cancel_admin_note}` : "") : t("Le client a refusé l'annulation.")}</Alert>}
 
           {order.status === "matched" && order.cancel_status !== "requested" && !problem && (
             <button onClick={() => setProblem(true)} className="w-full text-center text-xs font-bold text-slate-500 underline">{t("Un problème avec cette course ?")}</button>
@@ -170,9 +173,7 @@ export default function DriverOrder() {
                 <div className="rounded-xl bg-white p-3">
                   {mode === "cancel" && <Alert>⚠ {t("Règle : 3 annulations en moins d'une semaine entraînent un bannissement d'une semaine (avec votre adresse IP). Annulations cette semaine : {n}/3.", { n: cancels })}</Alert>}
                   <p className="font-bold">
-                    {mode === "cancel" && (hoursUntil(order.depart_date, order.depart_time) > CANCEL_FREE_HOURS
-                      ? t("Plus de 24 h avant le départ : vous pouvez annuler. Votre justification est transmise au client et à l'équipe.")
-                      : t("Moins de 24 h avant le départ : l'annulation doit être acceptée par le client. L'équipe est alertée ; une annulation abusive entraîne un avertissement (bannissement au bout de 2)."))}
+                    {mode === "cancel" && t("Le motif est obligatoire. La demande est examinée par l'administration, puis le client doit l'accepter. Une annulation abusive entraîne un avertissement (bannissement au bout de 2).")}
                     {mode === "goods" && t("La course est annulée et signalée à l'équipe : indiquez ce qui est interdit, dangereux ou non conforme aux indications du client.")}
                     {mode === "noshow" && t("Signalez que le client ne charge pas : l'équipe vérifie, le client peut devoir 10 % du prix du transport et recevoir un avertissement (bannissement au bout de 2).")}
                   </p>

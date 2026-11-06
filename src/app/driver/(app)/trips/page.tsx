@@ -73,6 +73,9 @@ export default function Trips() {
   const [dDate, setDDate] = useState("");
   const [dTime, setDTime] = useState("08:00");
   const [edit, setEdit] = useState<Trip | null>(null);
+  const [renewing, setRenewing] = useState<string | null>(null);
+  const [rDate, setRDate] = useState("");
+  const [rTime, setRTime] = useState("08:00");
   const [vehicle, setVehicle] = useState(driver?.vehicle_type ?? VEHICLE_TYPES[1]);
   const today = new Date().toISOString().slice(0, 10);
   const preview = auctionPreview(dDate, dTime);
@@ -90,15 +93,14 @@ export default function Trips() {
     const f = new FormData(form);
     const bad = (field: string, msg: string) => { setErr(msg); focusField(field); };
     const price = f.get("price") ? Number(f.get("price")) : null;
-    if (fromW === toW && (fromCom || "") === toCom) return bad("toCom", t("Choisissez deux wilayas différentes."));
-    if (!toCom) return bad("toCom", t("Choisissez la commune d'arrivée."));
+    if (fromW === toW && !fromCom && !toCom) return bad("toCom", t("Choisissez deux wilayas différentes."));
     if (price !== null && (!Number.isInteger(price) || price < MIN_PRICE)) return bad("price", t("Indiquez un prix valide (nombre entier en DA)."));
     if (!preview) return bad("dDate", t("Choisissez la date et l'heure de départ."));
     if (!preview.ok) return bad("dDate", t("Le départ doit être dans au moins 10 minutes."));
     setBusy(true);
     if (edit) {
       const { error } = await sb.rpc("flixi_update_trip", { p_trip: edit.id, p_data: {
-        from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom || null, to_commune: toCom,
+        from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom || null, to_commune: toCom || null,
         from_address: String(f.get("from_address") || "") || null, to_address: String(f.get("to_address") || "") || null,
         from_lat: fromPt?.lat ?? null, from_lng: fromPt?.lng ?? null, allow_enroute: enroute,
         depart_date: dDate, depart_time: dTime, price, note: String(f.get("note") || "") || null,
@@ -109,7 +111,7 @@ export default function Trips() {
       return load();
     }
     const { error } = await sb.from("flixi_trips").insert({
-      driver_id: profile.id, from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom || null, to_commune: toCom,
+      driver_id: profile.id, from_wilaya: fromW, to_wilaya: toW, from_commune: fromCom || null, to_commune: toCom || null,
       from_address: String(f.get("from_address") || "") || null, to_address: String(f.get("to_address") || "") || null,
       from_lat: fromPt?.lat ?? null, from_lng: fromPt?.lng ?? null, allow_enroute: enroute, vehicle_type: vehicle,
       depart_date: dDate, depart_time: dTime, price, note: String(f.get("note") || "") || null,
@@ -126,6 +128,22 @@ export default function Trips() {
     setFromPt(x.from_lat != null && x.from_lng != null ? { lat: x.from_lat, lng: x.from_lng } : null);
     setEnroute(!!x.allow_enroute); setVehicle(x.vehicle_type ?? driver?.vehicle_type ?? VEHICLE_TYPES[1]); setDDate(x.depart_date); setDTime(x.depart_time.slice(0, 5));
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  async function renew(x: Trip) {
+    setErr("");
+    const pv = auctionPreview(rDate, rTime);
+    if (!pv) return setErr(t("Choisissez la date et l'heure de départ."));
+    if (!pv.ok) return setErr(t("Le départ doit être dans au moins 10 minutes."));
+    const { error } = await sb.rpc("flixi_renew_trip", { p_trip: x.id, p_date: rDate, p_time: rTime });
+    if (error) return setErr(t(error.message));
+    setRenewing(null); setRDate(""); load();
+  }
+  async function removeTrip(x: Trip) {
+    if (!confirm(t("Supprimer cette annonce ? Elle disparaîtra de votre liste."))) return;
+    setErr("");
+    const { error } = await sb.rpc("flixi_delete_trip", { p_trip: x.id });
+    if (error) return setErr(t(error.message));
+    load();
   }
   function cancelEdit() { setEdit(null); setFromCom(""); setToCom(""); setFromPt(null); setEnroute(false); setDDate(""); setDTime("08:00"); }
 
@@ -169,7 +187,7 @@ export default function Trips() {
           </div>
           <div className="space-y-3 rounded-2xl bg-violet-50 p-4">
             <Field label={"🏁 " + t("Wilaya de destination")}><select className="select" value={toW} onChange={(e) => { setToW(e.target.value); setToCom(""); }}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{w(x.name)}</option>)}</select></Field>
-            <div data-field="toCom"><CommunePicker code={tw.code} value={toCom} onChange={setToCom} label={t("Commune d'arrivée")} /></div>
+            <div data-field="toCom"><CommunePicker code={tw.code} value={toCom} onChange={setToCom} label={t("Commune d'arrivée")} optional /></div>
             <Field label={t("Adresse d'arrivée")}><input name="to_address" defaultValue={edit?.to_address ?? ""} className="input" placeholder={t("Rue, repère…")} /></Field>
           </div>
         </div>
@@ -256,11 +274,26 @@ export default function Trips() {
 
         {past.length > 0 && <h3 className="pt-2 text-sm font-extrabold uppercase tracking-wide text-slate-500">{t("Trajets terminés")}</h3>}
         {past.map((x) => (
-          <div key={x.id} className="card flex flex-wrap items-center justify-between gap-2 p-4 text-sm opacity-90">
-            <div><p className="font-extrabold">{w(x.from_wilaya)} → {w(x.to_wilaya)}</p><p className="text-xs text-slate-500">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}</p></div>
-            <div className="flex items-center gap-2">
-              {(x.orders?.length ?? 0) > 0 ? x.orders!.map((o) => <Link key={o.id} href={`/driver/orders/${o.id}`} className="badge bg-emerald-100 text-emerald-700">✔ {o.ref} →</Link>) : <span className="badge bg-slate-200 text-slate-600">{t("Fermé")}</span>}
+          <div key={x.id} className="card space-y-3 p-4 text-sm opacity-95">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div><p className="font-extrabold">{w(x.from_wilaya)} → {w(x.to_wilaya)}</p><p className="text-xs text-slate-500">🗓 {t("{d} à {h}", { d: date(x.depart_date), h: x.depart_time.slice(0, 5) })}</p></div>
+              <div className="flex items-center gap-2">
+                {(x.orders?.length ?? 0) > 0 ? x.orders!.map((o) => <Link key={o.id} href={`/driver/orders/${o.id}`} className="badge bg-emerald-100 text-emerald-700">✔ {o.ref} →</Link>) : <span className="badge bg-slate-200 text-slate-600">{t("Fermé")}</span>}
+              </div>
             </div>
+            <p className="text-xs font-semibold text-slate-600">{t("Cette annonce est terminée : vous pouvez la renouveler avec une nouvelle date ou la supprimer.")}</p>
+            {renewing === x.id ? (
+              <div className="grid gap-2 sm:grid-cols-3">
+                <input type="date" min={today} value={rDate} onChange={(e) => setRDate(e.target.value)} className="input" dir="ltr" />
+                <input type="time" value={rTime} onChange={(e) => setRTime(e.target.value)} className="input" dir="ltr" />
+                <div className="flex gap-2"><button onClick={() => renew(x)} className="btn btn-primary flex-1 !py-2 text-sm">🔁 {t("Renouveler")}</button><button onClick={() => setRenewing(null)} className="btn btn-ghost !py-2 text-sm">{t("Annuler")}</button></div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => { setRenewing(x.id); setRDate(""); }} className="btn btn-primary !px-3 !py-1.5 text-xs">🔁 {t("Renouveler l'annonce")}</button>
+                {(x.orders?.length ?? 0) === 0 && <button onClick={() => removeTrip(x)} className="btn btn-danger !px-3 !py-1.5 text-xs">🗑 {t("Supprimer")}</button>}
+              </div>
+            )}
           </div>
         ))}
       </div>

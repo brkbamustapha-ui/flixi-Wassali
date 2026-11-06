@@ -191,10 +191,19 @@ export default function ClientOrder() {
           </div>
         )}
 
-        {order.status === "cancelled" && order.cancel_reason && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason })}</Alert>}
+        {order.status === "cancelled" && order.cancel_reason && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason })}{order.cancel_fee ? <> {t("Frais d'annulation (10 %) : {f}, à régler directement au transporteur.", { f: da(order.cancel_fee) })}</> : null}</Alert>}
         {["matched", "in_transit", "delivered"].includes(order.status) && <><ChatLauncher /><ChatHead sb={sb} orderId={id} open={order.status !== "delivered"} refLabel={order.ref} other="driver" /></>}
         {order.status === "delivered" && <RatePanel sb={sb} orderId={id} who="client" />}
-        {order.status === "expired" && <Alert>{t("Cette commande a expiré : aucune offre n'a été retenue avant la date de départ.")}</Alert>}
+        {order.status === "expired" && (
+          <div className="card space-y-3 p-5">
+            <Alert>{t("Cette commande a expiré : aucune offre n'a été retenue avant la date de départ.")}</Alert>
+            <p className="text-sm font-semibold text-slate-600">{t("Que voulez-vous faire de cette annonce ?")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/client/new?renew=${order.id}`} className="btn btn-primary !py-2 text-sm">🔁 {t("Renouveler l'annonce")}</Link>
+              <button disabled={!!busy} onClick={async () => { if (!confirm(t("Supprimer cette annonce ? Elle disparaîtra de votre liste."))) return; await act("del", () => sb.rpc("flixi_delete_order", { p_order: id })); router.push("/client"); }} className="btn btn-danger !py-2 text-sm">🗑 {t("Supprimer l'annonce")}</button>
+            </div>
+          </div>
+        )}
 
         {order.final_price && (
           <div className="card space-y-4 p-5 sm:p-6">
@@ -252,31 +261,33 @@ type CancelProps = {
 function CancelBox({ order, busy, act, sb, id, cancelOpen, setCancelOpen, reason, setReason }: CancelProps) {
   const { t } = useI18n();
   if (!["matched"].includes(order.status)) return null;
-  const free = hoursUntil(order.depart_date, order.depart_time) > CANCEL_FREE_HOURS;
-  if (order.cancel_status === "requested" && order.cancel_by === "driver") {
+  const requested = order.cancel_status === "requested";
+  // 1) Le transporteur a demandé l'annulation ET l'administration l'a validée : le client doit répondre.
+  if (requested && order.cancel_by === "driver" && order.cancel_admin_ok) {
     return (
       <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-sm">
-        <p className="font-extrabold">⚠ {t("Le transporteur demande l'annulation de la course.")}</p>
+        <p className="font-extrabold">⚠ {t("Le transporteur demande l'annulation de la course (validée par l'administration).")}</p>
         <p className="mt-1">{t("Motif : {r}", { r: order.cancel_reason ?? "" })}</p>
         <div className="mt-3 flex gap-2">
-          <button disabled={!!busy} onClick={() => act("ans", () => sb.rpc("flixi_answer_cancel", { p_order: id, p_accept: true }))} className="btn btn-primary !py-1.5 text-sm">✔ {t("Accepter l'annulation")}</button>
-          <button disabled={!!busy} onClick={() => act("ans", () => sb.rpc("flixi_answer_cancel", { p_order: id, p_accept: false }))} className="btn btn-danger !py-1.5 text-sm">✖ {t("Refuser")}</button>
+          <button disabled={!!busy} onClick={() => act("ans", () => sb.rpc("flixi_answer_cancel2", { p_order: id, p_accept: true, p_with_fee: false }))} className="btn btn-primary !py-1.5 text-sm">✔ {t("Accepter l'annulation")}</button>
+          <button disabled={!!busy} onClick={() => act("ans", () => sb.rpc("flixi_answer_cancel2", { p_order: id, p_accept: false, p_with_fee: false }))} className="btn btn-danger !py-1.5 text-sm">✖ {t("Refuser")}</button>
         </div>
       </div>
     );
   }
-  if (order.cancel_status === "requested") return <Alert kind="info">⏳ {t("Votre demande d'annulation attend la réponse du transporteur.")}</Alert>;
+  if (requested && order.cancel_by === "driver") return <Alert kind="info">⏳ {t("Le transporteur a demandé l'annulation : l'administration l'examine avant de vous la soumettre.")}</Alert>;
+  if (requested) return <Alert kind="info">{order.cancel_admin_ok ? "✔ " + t("L'administration a validé votre demande d'annulation. En attente de la réponse du transporteur : il peut accepter sans frais ou avec des frais de 10 % du prix, à vous régler directement.") : "⏳ " + t("Votre demande d'annulation est examinée par l'administration, puis le transporteur devra l'accepter.")}</Alert>;
   return (
     <div className="space-y-2">
-      {order.cancel_status === "refused" && <Alert>{t("Le transporteur a refusé l'annulation.")}</Alert>}
+      {order.cancel_status === "refused" && <Alert>{order.cancel_admin_ok === false ? t("L'administration a refusé l'annulation.") + (order.cancel_admin_note ? ` ${order.cancel_admin_note}` : "") : t("Le transporteur a refusé l'annulation.")}</Alert>}
       {!cancelOpen ? (
-        <button onClick={() => setCancelOpen(true)} className="btn btn-danger !py-1.5 text-sm">{free ? t("Annuler la course") : t("Demander l'annulation")}</button>
+        <button onClick={() => setCancelOpen(true)} className="btn btn-danger !py-1.5 text-sm">{t("Demander l'annulation")}</button>
       ) : (
         <div className="rounded-xl border-2 border-rose-200 bg-rose-50/60 p-3 text-sm">
-          <p className="font-bold">{free ? t("Annulation gratuite : plus de 24 h avant le départ.") : t("Moins de 24 h avant le départ : l'annulation doit être acceptée par le transporteur. Indiquez le motif.")}</p>
+          <p className="font-bold">{t("L'annulation doit être validée par l'administration puis acceptée par le transporteur. Le motif est obligatoire.")}</p>
           <textarea className="textarea mt-2" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("Motif de l'annulation")} />
           <div className="mt-2 flex gap-2">
-            <button disabled={!!busy || (!free && reason.trim().length < 5)} onClick={async () => { await act("cancel", () => sb.rpc("flixi_client_cancel", { p_order: id, p_reason: reason })); setCancelOpen(false); }} className="btn btn-danger !py-1.5 text-sm">{t("Confirmer")}</button>
+            <button disabled={!!busy || reason.trim().length < 5} onClick={async () => { await act("cancel", () => sb.rpc("flixi_client_cancel", { p_order: id, p_reason: reason })); setCancelOpen(false); }} className="btn btn-danger !py-1.5 text-sm">{t("Envoyer la demande")}</button>
             <button onClick={() => setCancelOpen(false)} className="btn btn-ghost !py-1.5 text-sm">{t("Annuler")}</button>
           </div>
         </div>

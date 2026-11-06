@@ -20,7 +20,7 @@ export default function ClientHome() {
     let alive = true;
     async function load() {
       await sb.rpc("flixi_settle_all");
-      const { data } = await sb.from("flixi_orders").select(ORDER_COLS).eq("client_id", profile.id).order("created_at", { ascending: false });
+      const { data } = await sb.from("flixi_orders").select(ORDER_COLS).eq("client_id", profile.id).is("deleted_at", null).order("created_at", { ascending: false });
       const { data: b } = await sb.from("flixi_bids").select("order_id,price,status").neq("status", "rejected");
       if (!alive) return;
       setOrders((data as unknown as Order[]) ?? []);
@@ -81,6 +81,25 @@ export default function ClientHome() {
               </Link>
             );
           })}
+        </div>
+      )}
+
+      {orders.some((o) => o.status === "expired") && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-extrabold">⏰ {t("Annonces terminées")}</h2>
+          <p className="text-sm text-slate-500">{t("Ces annonces ont expiré sans transporteur retenu : renouvelez-les ou supprimez-les.")}</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {orders.filter((o) => o.status === "expired").map((o) => (
+              <div key={o.id} className="card space-y-2 p-4 text-sm">
+                <p className="text-xs font-extrabold text-brand-pink">{o.ref}</p>
+                <p className="font-extrabold">{w(o.from_wilaya)} → {w(o.to_wilaya)} · {da(o.client_price)}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Link href={`/client/new?renew=${o.id}`} className="btn btn-primary !px-3 !py-1.5 text-xs">🔁 {t("Renouveler l'annonce")}</Link>
+                  <button onClick={async () => { if (!confirm(t("Supprimer cette annonce ? Elle disparaîtra de votre liste."))) return; await sb.rpc("flixi_delete_order", { p_order: o.id }); location.reload(); }} className="btn btn-danger !px-3 !py-1.5 text-xs">🗑 {t("Supprimer")}</button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

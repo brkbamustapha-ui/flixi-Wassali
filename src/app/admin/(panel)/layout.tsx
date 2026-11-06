@@ -14,7 +14,7 @@ async function logout() {
 
 const TABS = [
   ["", "Vue d'ensemble"], ["live", "Carte en direct"], ["drivers", "Transporteurs"], ["clients", "Clients"],
-  ["orders", "Commandes"], ["trips", "Trajets"], ["commissions", "Commissions"], ["reports", "Signalements"], ["bans", "Bannissements"], ["changes", "Modifications"],
+  ["orders", "Commandes"], ["trips", "Trajets"], ["commissions", "Commissions"], ["cancellations", "Annulations"], ["reports", "Signalements"], ["bans", "Bannissements"], ["changes", "Modifications"],
 ];
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
