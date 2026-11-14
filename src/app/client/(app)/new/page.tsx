@@ -11,7 +11,7 @@ import PhotoPicker from "@/components/PhotoPicker";
 import AvailableDrivers from "@/components/AvailableDrivers";
 import { WILAYAS, findWilaya, wilayaLabel, nearestWilaya, distKm } from "@/lib/wilayas";
 import CommunePicker from "@/components/CommunePicker";
-import { geocodeCommune, reverseCommune, matchCommune, norm, type Commune } from "@/lib/geo";
+import { geocodeCommune, reverseCommune, matchCommune, loadCommunes, norm, type Commune } from "@/lib/geo";
 import { useI18n } from "@/lib/i18n";
 import { focusField } from "@/lib/formFocus";
 
@@ -54,6 +54,7 @@ export default function NewOrder() {
   const [busy, setBusy] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [renewMode, setRenewMode] = useState(false);
+  const [republish, setRepublish] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const skip = useRef({ from: false, to: false });
 
@@ -61,20 +62,22 @@ export default function NewOrder() {
   useEffect(() => {
     const q0 = new URLSearchParams(location.search);
     const renew = !!q0.get("renew");
-    const id = q0.get("edit") ?? q0.get("renew");
+    const repub = !!q0.get("republish");
+    const id = q0.get("edit") ?? q0.get("renew") ?? q0.get("republish");
     if (!id) return;
-    setEditId(id); setLoadingEdit(true); setRenewMode(renew);
+    if (!repub) setEditId(id);
+    setLoadingEdit(true); setRenewMode(renew); setRepublish(repub);
     sb.from("flixi_orders").select("*").eq("id", id).eq("client_id", profile.id).maybeSingle().then(async ({ data: o }) => {
       const x = o as Record<string, any> | null; // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (!x || (renew ? x.status !== "expired" : x.status !== "open")) { setErr(t("Cette annonce ne peut plus être modifiée.")); return setLoadingEdit(false); }
-      const { count } = renew ? { count: 0 } : await sb.from("flixi_bids").select("id", { count: "exact", head: true }).eq("order_id", id);
+      if (!x || (repub ? !["cancelled", "expired"].includes(x.status) : renew ? x.status !== "expired" : x.status !== "open")) { setErr(t("Cette annonce ne peut plus être modifiée.")); return setLoadingEdit(false); }
+      const { count } = (renew || repub) ? { count: 0 } : await sb.from("flixi_bids").select("id", { count: "exact", head: true }).eq("order_id", id);
       if ((count ?? 0) > 0) { setErr(t("Modification impossible : des offres ont déjà été faites.")); return setLoadingEdit(false); }
       skip.current = { from: x.from_wilaya !== "Alger", to: x.to_wilaya !== "Oran" };
       setGoods(x.goods_type); setDesc(x.description ?? ""); setWeight(x.weight_kg != null ? String(x.weight_kg) : "");
       setFrom(x.from_wilaya); setTo(x.to_wilaya); setFromAddr(x.from_address ?? ""); setToAddr(x.to_address ?? "");
       setFromCom(x.from_commune ?? ""); setToCom(x.to_commune ?? "");
       setFromPt(x.from_lat != null ? { lat: x.from_lat, lng: x.from_lng } : null); setToPt(x.to_lat != null ? { lat: x.to_lat, lng: x.to_lng } : null);
-      setPrice(String(x.client_price)); setDDate(renew ? "" : (x.depart_date ?? "")); setDTime((x.depart_time ?? "08:00").slice(0, 5));
+      setPrice(String(x.client_price)); setDDate(renew || repub ? "" : (x.depart_date ?? "")); setDTime((x.depart_time ?? "08:00").slice(0, 5));
       setHandlers(String(x.handlers_count ?? 0)); setFloor(x.floor_no != null ? String(x.floor_no) : ""); setBring(!!x.driver_brings_handlers);
       setDims({ l: x.length_cm != null ? String(x.length_cm) : "", w: x.width_cm != null ? String(x.width_cm) : "", h: x.height_cm != null ? String(x.height_cm) : "" });
       setPhotos([...(x.goods_img ? [x.goods_img] : []), ...(Array.isArray(x.extra_imgs) ? x.extra_imgs : [])]);
@@ -85,7 +88,7 @@ export default function NewOrder() {
   }, [sb, profile.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (new URLSearchParams(location.search).get("edit") || new URLSearchParams(location.search).get("renew")) return;
+    if (new URLSearchParams(location.search).get("edit") || new URLSearchParams(location.search).get("renew") || new URLSearchParams(location.search).get("republish")) return;
     const q = new URLSearchParams(location.search);
     if (q.get("from") && findWilaya(q.get("from"))) setFrom(q.get("from")!);
     if (q.get("to") && findWilaya(q.get("to"))) setTo(q.get("to")!);
@@ -135,6 +138,22 @@ export default function NewOrder() {
   };
   const fromOut = outside(fromPt, wf), toOut = outside(toPt, wt);
 
+  /** GPS : remplit la wilaya, la commune, l'adresse et le point sur la carte du côté choisi (départ ou arrivée). */
+  async function gpsFill(side: "from" | "to") {
+    setErr("");
+    const { pos, denied } = await getPosition();
+    if (!pos) return setErr(denied ? t("Activez la localisation de votre appareil pour utiliser le GPS.") : t("Impossible d'obtenir votre position. Cliquez sur la carte pour placer le point."));
+    const near = nearestWilaya(pos.lat, pos.lng);
+    const cur = side === "from" ? from : to;
+    if (near.name !== cur) { skip.current[side] = true; (side === "from" ? setFrom : setTo)(near.name); }
+    (side === "from" ? setFromPt : setToPt)({ lat: pos.lat, lng: pos.lng });
+    setPlacing(side); setFocus({ lat: pos.lat, lng: pos.lng, zoom: pos.approx ? 11 : 15, key: `gps:${side}:${Date.now()}` });
+    const [list, rev] = await Promise.all([loadCommunes(near.code), reverseCommune(pos.lat, pos.lng)]);
+    const found = rev ? matchCommune(list, rev.commune) : null;
+    if (found) (side === "from" ? setFromCom : setToCom)(found[0]);
+    (side === "from" ? setFromAddr : setToAddr)((prev) => prev || `GPS ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}${rev?.commune ? ` — ${rev.commune}` : ""}`);
+  }
+
   function locate() {
     getPosition().then(({ pos }) => {
       if (!pos) return setErr(t("Impossible d'obtenir votre position. Cliquez sur la carte pour placer le point."));
@@ -150,7 +169,9 @@ export default function NewOrder() {
     e.preventDefault();
     setErr("");
     if (!fromCom || !toCom) return bad(!fromCom ? "fromCom" : "toCom", t("Choisissez la commune de départ et la commune d'arrivée."));
-    if (from === to && fromCom === toCom && !fromAddr) return bad("fromAddr", t("Départ et arrivée sont dans la même commune : précisez les adresses."));
+    if (!fromAddr.trim()) return bad("fromAddr", t("Indiquez l'adresse de départ (ou utilisez le GPS)."));
+    if (!toAddr.trim()) return bad("toAddr", t("Indiquez l'adresse d'arrivée (ou utilisez le GPS)."));
+    if (from === to && fromCom === toCom && fromAddr.trim() === toAddr.trim()) return bad("toAddr", t("Départ et arrivée sont dans la même commune : précisez les adresses."));
     if (!priceOk) return bad("price", t("Indiquez un prix valide (nombre entier en DA)."));
     if (!preview) return bad("dDate", t("Choisissez la date et l'heure de départ."));
     if (!preview.ok) return bad("dDate", t("Le départ doit être dans au moins 10 minutes."));
@@ -185,7 +206,8 @@ export default function NewOrder() {
   return (
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-5">
       <div className="card space-y-4 p-5 sm:p-6 lg:col-span-3">
-        <h1 className="text-2xl font-extrabold">{editId ? (renewMode ? t("Renouveler mon annonce") : t("Modifier mon annonce")) : t("Nouvelle commande")}</h1>
+        <h1 className="text-2xl font-extrabold">{republish ? t("Republier mon annonce") : editId ? (renewMode ? t("Renouveler mon annonce") : t("Modifier mon annonce")) : t("Nouvelle commande")}</h1>
+        {republish && <Alert kind="info">🔁 {t("Republiez votre annonce : vérifiez les informations et choisissez une nouvelle date et heure de départ.")}</Alert>}
         {editId && <Alert kind="info">{renewMode ? "🔁 " + t("Renouvelez votre annonce : choisissez une nouvelle date et heure de départ.") : "✏ " + t("Vous pouvez modifier votre annonce tant qu'aucun transporteur n'a fait d'offre.")}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("Type de marchandise")}><select className="select" value={goods} onChange={(e) => setGoods(e.target.value)}>{GOODS_TYPES.map((g) => <option key={g} value={g}>{t(g)}</option>)}</select></Field>
@@ -210,12 +232,14 @@ export default function NewOrder() {
           <div className="space-y-3 rounded-2xl bg-orange-50/60 p-4">
             <Field label={"📍 " + t("Wilaya de départ")}><select className="select" value={from} onChange={(e) => setFrom(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{wilayaLabel(x, lang)}</option>)}</select></Field>
             <div data-field="fromCom"><CommunePicker code={wf.code} value={fromCom} onChange={(c) => pickCommune("from", c)} onList={setFromList} label={t("Commune de départ")} /></div>
-            <Field name="fromAddr" label={t("Adresse de départ")}><input className="input" value={fromAddr} onChange={(e) => setFromAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
+            <button type="button" onClick={() => gpsFill("from")} className="btn btn-ghost w-full !py-1.5 text-sm">📍 {t("Utiliser ma position (GPS) pour le départ")}</button>
+            <Field name="fromAddr" label={t("Adresse de départ") + " *"}><input className="input" value={fromAddr} onChange={(e) => setFromAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
           </div>
           <div className="space-y-3 rounded-2xl bg-violet-50 p-4">
             <Field label={"🏁 " + t("Wilaya d'arrivée")}><select className="select" value={to} onChange={(e) => setTo(e.target.value)}>{WILAYAS.map((x) => <option key={x.code} value={x.name}>{wilayaLabel(x, lang)}</option>)}</select></Field>
             <div data-field="toCom"><CommunePicker code={wt.code} value={toCom} onChange={(c) => pickCommune("to", c)} onList={setToList} label={t("Commune d'arrivée")} /></div>
-            <Field label={t("Adresse d'arrivée")}><input className="input" value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
+            <button type="button" onClick={() => gpsFill("to")} className="btn btn-ghost w-full !py-1.5 text-sm">📍 {t("Utiliser ma position (GPS) pour l'arrivée")}</button>
+            <Field name="toAddr" label={t("Adresse d'arrivée") + " *"}><input className="input" value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder={t("Commune, rue…")} /></Field>
           </div>
         </div>
         {!editId && <AvailableDrivers from={from} to={to} vehicle={vehicle} />}

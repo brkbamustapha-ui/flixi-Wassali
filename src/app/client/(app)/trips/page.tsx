@@ -10,6 +10,7 @@ import { da, departDate } from "@/lib/format";
 import { WILAYAS } from "@/lib/wilayas";
 import { tripServes } from "@/lib/tripMatch";
 import { useI18n } from "@/lib/i18n";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 type MyBid = {
   id: string; price: number; status: string; goods_type: string; trip_id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string;
@@ -49,7 +50,8 @@ export default function ClientTrips() {
     setTrips((a.data as PublicTrip[]) ?? []);
     setMine((b.data as MyBid[]) ?? []);
   }, [sb]);
-  useEffect(() => { load(); const i = setInterval(load, 10000); return () => clearInterval(i); }, [load]);
+  useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 5000);
   useEffect(() => { const q = new URLSearchParams(window.location.search); setFrom(q.get("from") ?? ""); setToF(q.get("to") ?? ""); }, []);
 
   async function withdraw(tripId: string) {

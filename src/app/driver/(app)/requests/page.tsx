@@ -9,6 +9,7 @@ import OrderDetails from "@/components/OrderDetails";
 import { pingNow } from "@/lib/location";
 import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded-2xl bg-violet-100" /> });
@@ -74,7 +75,8 @@ export default function Requests() {
     setBids((b as Bid[]) ?? []);
     setStats(Object.fromEntries(((s as Stat[]) ?? []).map((x) => [x.order_id, x])));
   }, [sb, profile.id]);
-  useEffect(() => { load(); const i = setInterval(load, 8000); return () => clearInterval(i); }, [load]);
+  useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 5000);
 
   const fail = (m: string) => setErr(/row-level security|violates/i.test(m) ? t("enchère terminée") : t(m));
 

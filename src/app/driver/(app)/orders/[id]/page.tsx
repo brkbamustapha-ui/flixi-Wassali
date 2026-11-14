@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -8,11 +9,13 @@ import { ORDER_STATUS, da, phoneDigits } from "@/lib/format";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import OrderDetails from "@/components/OrderDetails";
 import ArchivedBanner from "@/components/ArchivedBanner";
+import CancelPanel, { ProofForm } from "@/components/CancelPanel";
 import ChatHead, { ChatLauncher } from "@/components/OrderChat";
 import { pingNow } from "@/lib/location";
 import RatePanel from "@/components/RatePanel";
 import { findWilaya } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false, loading: () => <div className="h-[340px] animate-pulse rounded-2xl bg-violet-100" /> });
 type Contacts = { client: { name: string; phone: string }; driver: { name: string; phone: string } };
@@ -31,6 +34,7 @@ export default function DriverOrder() {
   const [mode, setMode] = useState<"" | "cancel" | "goods" | "noshow">("");
   const [problem, setProblem] = useState(false);
   const [reason, setReason] = useState("");
+  const [proofs, setProofs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [cancels, setCancels] = useState(0);
 
@@ -42,6 +46,7 @@ export default function DriverOrder() {
     setContacts(c as Contacts | null);
   }, [sb, id, router]);
   useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 4000);
   useEffect(() => { sb.rpc("flixi_my_cancel_count").then(({ data }) => typeof data === "number" && setCancels(data)); }, [sb, order?.status]);
 
   const tracking = order && ["matched", "in_transit"].includes(order.status);
@@ -76,16 +81,10 @@ export default function DriverOrder() {
     setErr(""); setBusy(true);
     const r = mode === "noshow"
       ? await sb.rpc("flixi_report_no_show", { p_order: id, p_reason: reason })
-      : await sb.rpc("flixi_driver_cancel", { p_order: id, p_reason: reason, p_kind: mode === "goods" ? "goods_issue" : "normal" });
+      : await sb.rpc("flixi_driver_cancel", { p_order: id, p_reason: reason, p_kind: mode === "goods" ? "goods_issue" : "normal", p_imgs: proofs });
     setBusy(false);
     if (r.error) return setErr(t(r.error.message));
-    setMode(""); setReason("");
-    load();
-  }
-  async function answerCancel(accept: boolean, withFee = false) {
-    setErr("");
-    const { error } = await sb.rpc("flixi_answer_cancel2", { p_order: id, p_accept: accept, p_with_fee: withFee });
-    if (error) setErr(t(error.message));
+    setMode(""); setReason(""); setProofs([]);
     load();
   }
 
@@ -134,29 +133,21 @@ export default function DriverOrder() {
           )}
           {err && <Alert>{err}</Alert>}
           {geoErr && <Alert>{geoErr}</Alert>}
-          {order.status === "matched" && <button onClick={() => act("flixi_start_transit")} className="btn btn-primary w-full !py-3">🚚 {t("J'ai chargé la marchandise — démarrer la course")}</button>}
-          {order.status === "in_transit" && (order.driver_done_at
+          {order.status === "matched" && order.cancel_status !== "requested" && <button onClick={() => act("flixi_start_transit")} className="btn btn-primary w-full !py-3">🚚 {t("J'ai chargé la marchandise — démarrer la course")}</button>}
+          {order.status === "in_transit" && order.cancel_status !== "requested" && (order.driver_done_at
             ? <Alert kind="info">⏳ {t("Vous avez confirmé la livraison. En attente de la confirmation du client pour terminer la course.")}</Alert>
             : <button onClick={() => act("flixi_confirm_done")} className="btn btn-ok w-full !py-3">✔ {t("Marchandise livrée — confirmer la fin de la course")}</button>)}
           {order.status === "in_transit" && order.client_done_at && !order.driver_done_at && <Alert kind="info">{t("Le client a déjà confirmé la réception : confirmez à votre tour pour terminer la course.")}</Alert>}
           {order.status === "delivered" && <Alert kind="ok">{t("Course terminée. Pensez à verser votre commission chaque samedi.")} {t("Les informations personnelles du client sont maintenant masquées ; tous les détails de la course restent affichés.")}</Alert>}
-          {order.status === "cancelled" && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason ?? "—" })}{order.cancel_fee ? <> {t("Frais d'annulation (10 %) : {f}, à encaisser directement auprès du client.", { f: da(order.cancel_fee) })}</> : null}</Alert>}
-
-          {order.cancel_status === "requested" && order.cancel_by === "client" && order.status === "matched" && order.cancel_admin_ok && (
-            <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-sm">
-              <p className="font-extrabold">⚠ {t("Le client demande l'annulation de la course (validée par l'administration).")}</p>
-              <p className="mt-1">{t("Motif : {r}", { r: order.cancel_reason ?? "" })}</p>
-              <p className="mt-2 text-xs font-semibold text-slate-700">{t("Vous choisissez : annulation sans frais, ou avec des frais de 10 % du prix ({f}) que le client vous règle directement (la plateforme ne touche rien).", { f: da(Math.round((order.final_price ?? order.client_price) * 0.1)) })}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button onClick={() => answerCancel(true, false)} className="btn btn-primary !py-1.5 text-sm">✔ {t("Accepter sans frais")}</button>
-                <button onClick={() => answerCancel(true, true)} className="btn btn-ok !py-1.5 text-sm">💰 {t("Accepter avec frais (10 %)")}</button>
-                <button onClick={() => answerCancel(false)} className="btn btn-danger !py-1.5 text-sm">✖ {t("Refuser")}</button>
-              </div>
+          {order.status === "cancelled" && <Alert>{t("Commande annulée par {who}. Motif : {r}", { who: order.cancel_by === "driver" ? t("le transporteur") : t("le client"), r: order.cancel_reason ?? "—" })}{order.cancel_fee ? <> {t("Frais d'annulation : {f}, à encaisser directement auprès du client.", { f: da(order.cancel_fee) })}</> : null}</Alert>}
+          {order.status === "cancelled" && order.trip_id && (
+            <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm">
+              <p className="font-semibold text-slate-700">{t("L'annulation est terminée. Vous pouvez republier votre annonce de trajet ou la supprimer définitivement.")}</p>
+              <Link href="/driver/trips" className="btn btn-primary mt-2 !py-2 text-sm">🔁 {t("Gérer mon annonce de trajet")}</Link>
             </div>
           )}
-          {order.cancel_status === "requested" && order.cancel_by === "client" && order.status === "matched" && !order.cancel_admin_ok && <Alert kind="info">⏳ {t("Le client a demandé l'annulation : l'administration l'examine avant de vous la soumettre.")}</Alert>}
-          {order.cancel_status === "requested" && order.cancel_by === "driver" && <Alert kind="info">{order.cancel_admin_ok ? "✔ " + t("L'administration a validé votre demande d'annulation. En attente de la réponse du client.") : "⏳ " + t("Votre demande d'annulation est examinée par l'administration, puis le client devra l'accepter.")}</Alert>}
-          {order.cancel_status === "refused" && order.cancel_by === "driver" && <Alert>{order.cancel_admin_ok === false ? t("L'administration a refusé l'annulation.") + (order.cancel_admin_note ? ` ${order.cancel_admin_note}` : "") : t("Le client a refusé l'annulation.")}</Alert>}
+
+          <CancelPanel role="driver" order={order} sb={sb} onChanged={load} />
 
           {order.status === "matched" && order.cancel_status !== "requested" && !problem && (
             <button onClick={() => setProblem(true)} className="w-full text-center text-xs font-bold text-slate-500 underline">{t("Un problème avec cette course ?")}</button>
@@ -173,11 +164,11 @@ export default function DriverOrder() {
                 <div className="rounded-xl bg-white p-3">
                   {mode === "cancel" && <Alert>⚠ {t("Règle : 3 annulations en moins d'une semaine entraînent un bannissement d'une semaine (avec votre adresse IP). Annulations cette semaine : {n}/3.", { n: cancels })}</Alert>}
                   <p className="font-bold">
-                    {mode === "cancel" && t("Le motif est obligatoire. La demande est examinée par l'administration, puis le client doit l'accepter. Une annulation abusive entraîne un avertissement (bannissement au bout de 2).")}
+                    {mode === "cancel" && t("Le motif est obligatoire. Le client et l'administration sont prévenus en même temps : si le client accepte, la course est annulée ; s'il refuse, l'administration tranche. Une annulation abusive entraîne un avertissement (bannissement au bout de 2).")}
                     {mode === "goods" && t("La course est annulée et signalée à l'équipe : indiquez ce qui est interdit, dangereux ou non conforme aux indications du client.")}
                     {mode === "noshow" && t("Signalez que le client ne charge pas : l'équipe vérifie, le client peut devoir 10 % du prix du transport et recevoir un avertissement (bannissement au bout de 2).")}
                   </p>
-                  <textarea className="textarea mt-2" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("Justification (obligatoire)")} />
+                  <div className="mt-2"><ProofForm message={reason} onMessage={setReason} photos={proofs} onPhotos={setProofs} label={t("Justification (obligatoire)")} onError={setErr} /></div>
                   <div className="mt-2 flex gap-2">
                     <button disabled={busy || reason.trim().length < 5} onClick={submitReason} className="btn btn-danger !py-1.5 text-sm">{t("Envoyer")}</button>
                     <button onClick={() => { setMode(""); setReason(""); }} className="btn btn-ghost !py-1.5 text-sm">{t("Annuler")}</button>

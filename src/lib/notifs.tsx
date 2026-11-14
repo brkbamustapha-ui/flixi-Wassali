@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 
 export type Notif = {
   id: string; kind: string; read?: boolean; created_at?: string;
-  params: { from?: string; to?: string; price?: number; by?: string; count?: number; accepted?: boolean; order?: string; ref?: string; text?: string; stars?: number; approved?: boolean; trip?: string; fee?: number | null };
+  params: { from?: string; to?: string; price?: number; by?: string; count?: number; accepted?: boolean; order?: string; ref?: string; text?: string; stars?: number; approved?: boolean; trip?: string; fee?: number | null; cancelled?: boolean };
 };
 
 /** Texte lisible d'une notification + lien vers la page concernée. */
@@ -18,10 +18,11 @@ export function useNotifText(role: "client" | "driver") {
       case "new_trip_bid": return t("Nouvelle offre de {p} sur votre trajet {r}", { p: da(n.params.price), r });
       case "order_on_trip": return t("Nouvelle demande client sur votre trajet {tr} : {r} ({p})", { tr: n.params.trip ?? "", r, p: da(n.params.price) });
       case "deal": return t("Affaire conclue {r} pour {p}", { p: da(n.params.price), r });
-      case "cancel_request": return t("Demande d'annulation reçue pour {r}", { r });
       case "cancel_answer": return n.params.accepted
         ? (n.params.fee ? t("Annulation acceptée AVEC frais ({r}) : {f} à régler directement au transporteur.", { r, f: da(n.params.fee) }) : t("Votre demande d'annulation a été acceptée ({r})", { r }))
         : t("Votre demande d'annulation a été refusée ({r})", { r });
+      case "cancel_request": return t("Demande d'annulation de la course {r} : répondez maintenant (l'administration est prévenue en même temps).", { r: n.params.ref ?? r });
+      case "cancel_resolved": return n.params.cancelled ? t("L'administration a tranché : la course {r} est annulée.", { r: n.params.ref ?? r }) : t("L'administration a tranché : la course {r} continue.", { r: n.params.ref ?? r });
       case "cancel_review": return t("L'administration a validé l'annulation de la course {r} : c'est à vous de l'accepter ou de la refuser.", { r: n.params.ref ?? r });
       case "cancel_admin_ok": return t("L'administration a validé votre demande d'annulation ({r}) : en attente de l'autre partie.", { r: n.params.ref ?? r });
       case "cancel_refused": return t("L'administration a refusé votre demande d'annulation ({r}).", { r: n.params.ref ?? r });

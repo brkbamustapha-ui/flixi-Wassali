@@ -12,6 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Stars } from "@/components/RatePanel";
 import { pingNow, getPosition } from "@/lib/location";
 import { useI18n } from "@/lib/i18n";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { focusField } from "@/lib/formFocus";
 
 type TBid = {
@@ -84,7 +85,8 @@ export default function Trips() {
     const { data } = await sb.rpc("flixi_my_trips_overview");
     setTrips((data as Trip[]) ?? []);
   }, [sb]);
-  useEffect(() => { load(); const i = setInterval(load, 10000); return () => clearInterval(i); }, [load]);
+  useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 5000);
 
   async function add(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

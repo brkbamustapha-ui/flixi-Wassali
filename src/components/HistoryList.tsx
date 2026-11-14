@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "@/components/Session";
 import { Empty, Spinner } from "@/components/ui";
 import { Stars } from "@/components/RatePanel";
 import { ORDER_STATUS, da } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 type H = {
   id: string; ref: string; role: "client" | "driver"; status: string; goods_type: string; description: string | null; weight_kg: number | null;
@@ -18,7 +19,9 @@ export default function HistoryList({ role }: { role: "client" | "driver" }) {
   const { sb } = useSession();
   const { t, w, date } = useI18n();
   const [rows, setRows] = useState<H[] | null>(null);
-  useEffect(() => { sb.rpc("flixi_my_history").then(({ data }) => setRows(((data as H[]) ?? []).filter((r) => r.role === role))); }, [sb, role]);
+  const load = useCallback(() => { sb.rpc("flixi_my_history").then(({ data }) => setRows(((data as H[]) ?? []).filter((r) => r.role === role))); }, [sb, role]);
+  useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 8000);
   if (!rows) return <Spinner />;
   return (
     <div className="space-y-4">

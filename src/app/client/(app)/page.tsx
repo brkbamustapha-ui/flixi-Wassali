@@ -27,8 +27,10 @@ export default function ClientHome() {
       setBids((b as BidLite[]) ?? []);
     }
     load();
-    const t = setInterval(load, 10000);
-    return () => { alive = false; clearInterval(t); };
+    window.addEventListener("flixi:refresh", load);
+    document.addEventListener("visibilitychange", load);
+    const t = setInterval(() => { if (document.visibilityState === "visible") load(); }, 5000);
+    return () => { alive = false; clearInterval(t); window.removeEventListener("flixi:refresh", load); document.removeEventListener("visibilitychange", load); };
   }, [sb, profile.id]);
 
   if (!orders) return <Spinner />;

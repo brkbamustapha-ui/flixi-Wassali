@@ -40,6 +40,7 @@ export default function EventsHost({ sb, role }: { sb: SupabaseClient; role: "cl
     const list = (data as Notif[]) ?? [];
     if (!list.length) return;
     await sb.rpc("flixi_notifs_seen");
+    window.dispatchEvent(new Event("flixi:refresh"));
     setToasts((q) => [...q, ...list.map((n) => ({ id: n.id, text: text(n), href: href(n) }))].slice(-4));
     beep();
     list.forEach((n) => setTimeout(() => setToasts((q) => q.filter((x) => x.id !== n.id)), 9000));

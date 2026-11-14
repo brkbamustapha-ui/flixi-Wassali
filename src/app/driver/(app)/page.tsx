@@ -7,6 +7,7 @@ import { ORDER_STATUS, da, commissionFor } from "@/lib/format";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 import { pingNow } from "@/lib/location";
 import { useI18n } from "@/lib/i18n";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 type WinTrip = { id: string; from_wilaya: string; to_wilaya: string; depart_date: string; depart_time: string; phase: string; winning_bid_id: string | null; bids: { id: string; price: number; status: string; goods_type: string; description: string | null; weight_kg: number | null }[] };
 type WonBid = { id: string; price: number; order: Order };
@@ -38,7 +39,8 @@ export default function DriverHome() {
     setUnpaid((c ?? []).reduce((s, x) => s + x.amount, 0));
   }, [sb, profile.id]);
 
-  useEffect(() => { load(); const t = setInterval(load, 8000); return () => clearInterval(t); }, [load]);
+  useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 5000);
 
   async function answer(tripId: string, ok: boolean) {
     setErr("");

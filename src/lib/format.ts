@@ -77,3 +77,6 @@ export function auctionPreview(d: string, t: string) {
 export const AUCTION_HOURS = [1, 3, 6, 12, 24, 48];
 export const CANCEL_FREE_HOURS = 24;
 export const hoursUntil = (d?: string | null, t?: string | null) => (d && t ? (departDate(d, t).getTime() - Date.now()) / 3600000 : Infinity);
+
+/** Frais d'annulation (le client annule, le transporteur choisit de les appliquer) : 5 % du prix sous 10 000 DA, 1 000 DA fixes à partir de 10 000 DA. Versés au transporteur. */
+export const cancelFee = (price: number) => (price < 10000 ? Math.round(price * 0.05) : 1000);

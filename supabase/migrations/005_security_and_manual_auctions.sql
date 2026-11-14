@@ -134,3 +134,14 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 --   « flixi-done-reminders », colonnes transit_at / done_reminder_at), notification 'done_reminder' à celui qui n'a pas confirmé.
 -- * Fin d'annonce : flixi_update_order(renew:true) rouvre une commande expirée ; flixi_delete_order, flixi_renew_trip (copie avec nouvelle date),
 --   flixi_delete_trip ; suppression logique via deleted_at (orders, trips).
+
+-- Annulation v2 (appliqué via MCP) — remplace le circuit « administration d'abord » :
+-- * Demande (motif obligatoire + justificatifs photos) -> l'AUTRE partie est prévenue tout de suite (notification 'cancel_request') ET l'administration
+--   la voit en même temps (onglet « Annulations », rafraîchi toutes les 8 s, badge dans le menu : flixi_admin_cancel_counts).
+-- * L'autre partie répond via flixi_answer_cancel3 : ACCEPTE -> course annulée sans l'administration (frais au choix du transporteur quand le client annule :
+--   flixi_cancel_fee = 5 % sous 10 000 DA, 1 000 DA au-delà) ; REFUSE (motif + photos obligatoires) -> litige (cancel_dispute) tranché par
+--   flixi_admin_cancel_resolve (annuler sans/avec frais, ou rejeter : la course continue).
+-- * Tant que cancel_status = 'requested' : flixi_start_transit et flixi_confirm_done sont refusés (course bloquée).
+-- * flixi_cancel_proofs(order) : justificatifs visibles par les deux parties. Colonnes : cancel_dispute, cancel_imgs, cancel_refusal_reason,
+--   cancel_refusal_imgs, cancel_resolved_by. Anciennes versions (client_cancel/driver_cancel à 2-3 args, answer_cancel2, admin_cancel_decide) retirées.
+-- * Après annulation : le client choisit « Republier » (?republish=id) ou « Annuler définitivement » (flixi_delete_order).
