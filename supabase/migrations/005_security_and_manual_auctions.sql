@@ -151,3 +151,9 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- par le client : dernière position < 6 h -> wilaya la plus proche (flixi_wilayas), sinon wilaya de résidence. Une seule notification par transporteur.
 -- Fin de course : flixi_confirm_done ne dépend plus du GPS du transporteur ; le client ne peut confirmer qu'APRÈS le transporteur
 -- ('le transporteur doit d''abord confirmer la livraison') ; anciennes demandes d'annulation restées « requested » sur des courses en transit/livrées nettoyées.
+
+-- Notifications de nouvelle demande : règle unique, stricte (appliqué via MCP) — flixi_notify_trips_of_order :
+-- transporteur approuvé + flixi_drivers.notify_new_orders = true (réglage dans « Compte ») + GPS FRAIS (< 10 min, application ouverte) dans la wilaya de
+-- départ du client + véhicule de LA MÊME nature (flixi_vehicle_kind : moto, camionnette, fourgon, camion léger, camion 10 t, plateau, frigo, semi, porte-char,
+-- dépannage…) si le client en a demandé un. Plus de repli sur la wilaya de résidence, plus de notification via l'annonce de trajet.
+-- RPC : flixi_set_notify_orders(bool).

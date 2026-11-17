@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { Cairo, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Splash from "@/components/Splash";
+import FormGuard from "@/components/FormGuard";
 import { introBootScript } from "@/lib/intro";
 import { I18nProvider } from "@/lib/i18n";
 import { DEFAULT_LANG, LANG_COOKIE, htmlLang, isLang, isRtl } from "@/lib/i18n/config";
@@ -27,6 +28,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <I18nProvider initial={lang}>
           <Splash />
+          <FormGuard />
           {children}
         </I18nProvider>
       </body>

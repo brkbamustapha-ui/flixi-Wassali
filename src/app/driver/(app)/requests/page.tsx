@@ -9,6 +9,7 @@ import OrderDetails from "@/components/OrderDetails";
 import { pingNow } from "@/lib/location";
 import { WILAYAS, findWilaya, wilayasAlong } from "@/lib/wilayas";
 import { useI18n } from "@/lib/i18n";
+import { focusField } from "@/lib/formFocus";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { ORDER_COLS, type Order } from "@/lib/supabase";
 
@@ -82,7 +83,7 @@ export default function Requests() {
 
   async function propose(o: Order, price: number) {
     setErr("");
-    if (!Number.isFinite(price) || price < MIN_PRICE || !Number.isInteger(price)) return setErr(t("Indiquez un prix valide (nombre entier en DA)."));
+    if (!Number.isFinite(price) || price < MIN_PRICE || !Number.isInteger(price)) { focusField("bid-" + o.id); return setErr(t("Indiquez un prix valide (nombre entier en DA).")); }
     setBusy(o.id);
     if (!(await pingNow(sb))) { setBusy(""); return setErr(t("Position introuvable : activez la localisation de votre appareil puis réessayez.")); }
     const mine = bids.find((b) => b.order_id === o.id && b.status === "pending");
@@ -173,7 +174,7 @@ export default function Requests() {
                         </p>
                         {myBid.status === "pending" && bidding && (
                           <div className="mt-2 flex gap-2">
-                            <input type="number" min={MIN_PRICE} step={1} className="input !py-1.5" placeholder={t("Nouveau prix")} value={p} dir="ltr" onChange={(e) => setPrices({ ...prices, [o.id]: e.target.value })} />
+                            <input data-field={"bid-" + o.id} type="number" min={MIN_PRICE} step={1} className="input !py-1.5" placeholder={t("Nouveau prix")} value={p} dir="ltr" onChange={(e) => setPrices({ ...prices, [o.id]: e.target.value })} />
                             <button disabled={busy === o.id || !p} onClick={() => propose(o, Number(p))} className="btn btn-ghost !py-1.5 text-sm">{t("Modifier")}</button>
                             <button onClick={() => withdraw(myBid.id)} className="btn btn-danger !py-1.5 text-sm">{t("Retirer")}</button>
                           </div>
@@ -186,7 +187,7 @@ export default function Requests() {
                       <div className="mt-4 space-y-2">
                         <button disabled={!approved || busy === o.id} onClick={() => buyNow(o)} className="btn btn-primary w-full !py-2 text-sm">✔ {t("Accepter {p}", { p: da(o.client_price) })}</button>
                         <div className="flex gap-2">
-                          <input type="number" min={MIN_PRICE} step={1} className="input !py-2" placeholder={t("Mon prix (DA)")} value={p} dir="ltr" onChange={(e) => setPrices({ ...prices, [o.id]: e.target.value })} />
+                          <input data-field={"bid-" + o.id} type="number" min={MIN_PRICE} step={1} className="input !py-2" placeholder={t("Mon prix (DA)")} value={p} dir="ltr" onChange={(e) => setPrices({ ...prices, [o.id]: e.target.value })} />
                           <button disabled={!approved || busy === o.id || !p} onClick={() => propose(o, Number(p))} className="btn btn-ghost !py-2 text-sm whitespace-nowrap">🔨 {t("Enchérir")}</button>
                         </div>
                         <NetPreview value={p} />

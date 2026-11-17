@@ -78,6 +78,14 @@ export default function Account() {
         <p className="text-xs text-slate-500">{t("L'équipe valide votre demande ; une fois acceptée, les modifications s'appliquent directement.")}</p>
       </form>
       {msg && <Alert kind={msg.k}>{msg.t}</Alert>}
+      <div className="card space-y-2 p-6">
+        <p className="font-extrabold">🔔 {t("Notifications des nouvelles demandes")}</p>
+        <label className="flex items-start gap-3 text-sm">
+          <input type="checkbox" className="mt-1 h-5 w-5 accent-pink-600" checked={driver.notify_new_orders !== false} onChange={async (e) => { await sb.rpc("flixi_set_notify_orders", { p_on: e.target.checked }); refresh(); }} />
+          <span className="font-semibold">{t("Je veux être prévenu quand un client publie une demande dans ma zone")}
+            <span className="mt-1 block text-xs font-normal text-slate-500">{t("Vous êtes prévenu uniquement si votre localisation GPS (application ouverte) est dans la wilaya de départ du client ET si votre type de véhicule correspond à celui demandé.")}</span></span>
+        </label>
+      </div>
       <RoleSwitch to="client" />
       <div className="card p-6"><ContactsManager sb={sb} onChanged={refresh} /></div>
       <div className="card space-y-3 p-6">

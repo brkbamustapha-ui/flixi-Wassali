@@ -51,7 +51,7 @@ export type Profile = {
 };
 export type DriverFile = {
   user_id: string; wilaya: string | null; vehicle_type: string; plate_number: string; license_kind: string;
-  license_number: string; approval: "pending" | "approved" | "rejected"; admin_note: string | null;
+  license_number: string; approval: "pending" | "approved" | "rejected"; admin_note: string | null; notify_new_orders?: boolean;
 };
 export type Order = {
   id: string; client_id: string; goods_type: string; description: string | null; weight_kg: number | null;
