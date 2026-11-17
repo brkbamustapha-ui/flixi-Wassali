@@ -17,6 +17,7 @@ export function useNotifText(role: "client" | "driver") {
       case "new_bid": return t("Nouvelle offre de {p} sur votre commande {r}", { p: da(n.params.price), r });
       case "new_trip_bid": return t("Nouvelle offre de {p} sur votre trajet {r}", { p: da(n.params.price), r });
       case "order_on_trip": return t("Nouvelle demande client sur votre trajet {tr} : {r} ({p})", { tr: n.params.trip ?? "", r, p: da(n.params.price) });
+      case "new_order_nearby": return t("Nouvelle demande dans votre zone ({r}) : {p}", { r, p: da(n.params.price) });
       case "deal": return t("Affaire conclue {r} pour {p}", { p: da(n.params.price), r });
       case "cancel_answer": return n.params.accepted
         ? (n.params.fee ? t("Annulation acceptée AVEC frais ({r}) : {f} à régler directement au transporteur.", { r, f: da(n.params.fee) }) : t("Votre demande d'annulation a été acceptée ({r})", { r }))
@@ -40,7 +41,7 @@ export function useNotifText(role: "client" | "driver") {
     }
   }, [t, w]);
   const href = useCallback((n: Notif): string | undefined => {
-    if (n.kind === "order_on_trip") return "/driver/requests";
+    if (n.kind === "order_on_trip" || n.kind === "new_order_nearby") return "/driver/requests";
     const o = n.params.order;
     if (o) return `/${role}/orders/${o}`;
     if (n.kind === "new_trip_bid") return "/driver/trips";

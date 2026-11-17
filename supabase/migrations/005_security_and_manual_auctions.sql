@@ -145,3 +145,9 @@ alter policy trips_update_own on public.flixi_trips using (driver_id = auth.uid(
 -- * flixi_cancel_proofs(order) : justificatifs visibles par les deux parties. Colonnes : cancel_dispute, cancel_imgs, cancel_refusal_reason,
 --   cancel_refusal_imgs, cancel_resolved_by. Anciennes versions (client_cancel/driver_cancel à 2-3 args, answer_cancel2, admin_cancel_decide) retirées.
 -- * Après annulation : le client choisit « Republier » (?republish=id) ou « Annuler définitivement » (flixi_delete_order).
+
+-- Notification « nouvelle demande dans votre zone » (appliqué via MCP) : à chaque nouvelle commande, flixi_notify_trips_of_order prévient aussi
+-- (kind 'new_order_nearby') les transporteurs approuvés dont le véhicule convient (flixi_vehicle_ok) et qui se trouvent dans la wilaya de départ choisie
+-- par le client : dernière position < 6 h -> wilaya la plus proche (flixi_wilayas), sinon wilaya de résidence. Une seule notification par transporteur.
+-- Fin de course : flixi_confirm_done ne dépend plus du GPS du transporteur ; le client ne peut confirmer qu'APRÈS le transporteur
+-- ('le transporteur doit d''abord confirmer la livraison') ; anciennes demandes d'annulation restées « requested » sur des courses en transit/livrées nettoyées.

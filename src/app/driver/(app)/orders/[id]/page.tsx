@@ -71,7 +71,9 @@ export default function DriverOrder() {
 
   async function act(fn: string) {
     setErr("");
-    if (!(await pingNow(sb))) return setErr(t("Position introuvable : activez la localisation de votre appareil puis réessayez."));
+    // Démarrer la course exige une position fraîche ; confirmer la fin de la course ne doit jamais être bloqué par le GPS (essai sans condition).
+    if (fn === "flixi_confirm_done") await pingNow(sb).catch(() => false);
+    else if (!(await pingNow(sb))) return setErr(t("Position introuvable : activez la localisation de votre appareil puis réessayez."));
     const { error } = await sb.rpc(fn, { p_order: id });
     if (error) setErr(t(error.message));
     load();
